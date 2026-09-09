@@ -1,0 +1,9 @@
+# IDE / editor state — not project evidence, just local noise
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Secrets / environment — never commit real credentials
+.env
+*.env.local
