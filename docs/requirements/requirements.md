@@ -1,6 +1,7 @@
 # Requirements Baseline
 
 > Migrated from PED v1.0 (Word submission). Source content unchanged; reformatted into the repo's docs/ structure per lecturer feedback on Milestone 1 presentation.
+> Functional and Non-Functional Requirements updated for PED v2.0 per [CR-001 to CR-005](../change/change-control.md) (M1 IDs and scope realigned during M2). Everything else in this file is unchanged M1 content.
 
 # Problem and Business Need Analysis
 
@@ -236,8 +237,9 @@ error.</td>
 <tr class="odd">
 <td>FR-003</td>
 <td>Status Tracking</td>
-<td>Requesters will be allowed to see the list of active requests and
-the status of each item.</td>
+<td>Requesters can view request status in two ways, authenticated users
+can see their requests as a list or public tracking through the input of
+a request tracking ID</td>
 <td>High</td>
 <td>Requester</td>
 <td>When a requester views their dashboard with the list of their active
@@ -257,7 +259,7 @@ relevant requests will be displayed for them.</td>
 <td>FR-005</td>
 <td>Ticket Assignment</td>
 <td>Authorized staff will be allowed to assign a ticket to themselves or
-other authorized staff members.</td>
+other authorized staff members which changes status to “Assigned”.</td>
 <td>Medium</td>
 <td><p>Staff/</p>
 <p>Management</p></td>
@@ -267,8 +269,13 @@ to Me” or transfers the ticket to another staff member.</td>
 <tr class="even">
 <td>FR-006</td>
 <td>Status Transition</td>
-<td>Only valid state transformations shall be allowed when updating the
-status of valid tickets along with closing resolution notes.</td>
+<td><p>Only valid state transformations shall be allowed when updating
+the status of valid tickets along with closing resolution notes.</p>
+<p>(Submitted -&gt;</p>
+<p>Assigned -&gt;</p>
+<p>In Progress -&gt;</p>
+<p>Resolved -&gt;</p>
+<p>Closed)</p></td>
 <td>High</td>
 <td><p>Staff/</p>
 <p>Management</p></td>
@@ -278,8 +285,8 @@ resolution notes must be applied before acceptance.</td>
 <tr class="odd">
 <td>FR-007</td>
 <td>Management Dashboard</td>
-<td>Management shall be provided with summaries of total, open, overdue
-and resolved requests grouped by category</td>
+<td>Management shall be provided with summaries of total, open, resolved
+and closed requests grouped by category</td>
 <td>High</td>
 <td>Management</td>
 <td>When a manager views analytics, then an accurate number of
@@ -288,8 +295,8 @@ aggregated statistics load regarding tickets.</td>
 <tr class="even">
 <td>FR-008</td>
 <td>Audit Logging</td>
-<td>System will log all status changes, ticket assignments along the
-user id, notes and timestamp.</td>
+<td>System will log all status changes according to the status model,
+ticket assignments along the user id, notes and timestamp.</td>
 <td>Medium</td>
 <td><p>Management/</p>
 <p>Admin</p></td>
@@ -301,13 +308,15 @@ created and stored in the database.</td>
 
 ## Non-Functional Requirements (NFRs)
 
-| Req ID  | Quality      | Target Specification                                                                                 | Measuring Method                                                |
-|---------|--------------|------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
-| NFR-001 | Performance  | Efficient page loading and search queries must return under a base time limit of less than 2 seconds | Utilizing methods such as lighthouse execution for stress tests |
-| NFR-002 | Availability | System uptime shall achieve more than 99% uptime during operating hours                              | Uptime monitoring is done automatically with endpoint checks.   |
-| NFR-003 | Usability    | UI shall support devices all the way down to a 360px viewport width.                                 | Testing through browser dev tools to manipulate layout.         |
+| Req ID  | Quality          | Target Specification                                                                                       | Measuring Method                                                      |
+|---------|------------------|------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| NFR-001 | Performance      | Efficient page loading and search queries must return under a base time limit of less than 2 seconds       | Utilizing methods such as lighthouse execution for stress tests       |
+| NFR-002 | Availability     | System uptime shall achieve more than 99% uptime during operating hours                                    | Uptime monitoring is done automatically with endpoint checks.         |
+| NFR-003 | Usability        | UI shall support devices all the way down to a 360px viewport width.                                       | Testing through browser dev tools to manipulate layout.               |
+| NFR-004 | POPIA encryption | Personal data is only visible to the authorized requester it belongs to and authorized staff and managers. | Role-based access tests along with reviews of the public lookup page. |
 
 ##  
+
 
 # Constraints
 
