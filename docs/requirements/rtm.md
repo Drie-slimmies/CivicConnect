@@ -8,11 +8,6 @@
 | Brief: No visibility       | FR-003         | Public Status Tracking Lookup    | AC-REQ-02              | UI/Functional Testing     | Read Only DTO Query/Caching Strategy             | Lib/db/queries/requests.ts         | In Development      |
 | Brief: Unstructured Work   | FR-004         | Staff Task Filtering and Sorting | AC-STF-01              | User Acceptance Testing   | In Process Mediator Pattern                      | lib/events/handlers/assignStaff.ts | In Development      |
 | Brief: Weak Accountability | FR-006         | Mandatory Resolution Notes       | AC-STF-03              | Automated Unit/API Test   | State Design Pattern                             | Lib/states/inProgressState.ts      | In Development      |
-| Brief: Compliance Risks    | NFR-004        | POPIA Data Encryption            | AC-SEC-02              | Security Code Review      | Schema Level Encryption/ Least Privilege DB Role | Lib/db/schema.ts                   | In Development      |
+| Brief: Compliance Risks    | NFR-004        | POPIA Data Encryption            | AC-SEC-02              | Security Code Review      | Schema Level Encryption/ Least Privilege DB Role | Lib/db/schema.ts                   | Completed      |
 | Brief: Audit Gaps          | FR-008         | Immutable Audit Trail Logging    | AC-AUD-01              | Database Integration Test | Decorator Design Pattern                         | Lib/decorators/auditDecorator.ts   | In Development      |
 
-Note: verification status must be confirmed against the actual state of
-the repository before submission - a row should read "Planned / Not Yet
-Implemented" rather than "In Development" if the referenced file does
-not yet exist in Drie-slimmies/CivicConnect, per the M2
-evidence-completeness rule.
