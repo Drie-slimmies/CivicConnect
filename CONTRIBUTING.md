@@ -30,7 +30,7 @@ the Master Project Brief:
   issues, with automated workflows moving an item to In Review when a PR
   is linked and to Done when the PR merges.
 
-- A CI workflow (lint, typecheck, test, build, npm audit) runs on every
+- A CI workflow (lint, build, typecheck, production-dependency audit) runs on every
   pull request and push to main. A mature CI/CD pipeline is not required
   at M2, but this gives repeatable automated checks as evidence.
 
@@ -42,4 +42,3 @@ the Master Project Brief:
 
 - Every pull request follows a short template asking what changed, why,
   and how it was tested.
-
