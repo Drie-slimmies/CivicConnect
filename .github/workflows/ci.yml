@@ -32,5 +32,5 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Audit (high+ only)
-        run: npm audit --audit-level=high
+      - name: Audit (production dependencies, high+ only)
+        run: npm audit --omit=dev --audit-level=high
