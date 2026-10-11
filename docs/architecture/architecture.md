@@ -14,27 +14,27 @@ Pool driver so that FR-006/FR-008 can run as one atomic, interactive
 transaction (status update + audit insert + optimistic-concurrency check
 on a version column).
 
+Architectural style: a modular monolith. CivicConnect is built as one deployable Next.js application, organised into logical layers and domain modules that communicate through in-process domain events, with a single PostgreSQL database. Serverless hosting is the deployment target for that one deployable and is not a decision to build separate services. The alternatives (SOA/microservices, an event-driven design with a broker, and function-per-feature serverless), the trade-offs and the conditions for reconsidering are recorded in [ADR-05](../decisions/0008-architectural-style-modular-monolith.md).
+
 | Concern            | Technology                                                                           | Why (traces to)                                                                                                                                               |
-|--------------------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Frontend + backend | Next.js 16 (App Router, Route Handlers), TypeScript, React 19                        | Single-language stack for a 3-person team; NFR-003 mobile-first, NFR-001 performance                                                                          |
 | Database           | Neon serverless PostgreSQL (free tier)                                               | Cost/Resources constraint; scale-to-zero fits a student-project budget                                                                                        |
 | ORM / DB access    | Drizzle ORM + drizzle-kit, @neondatabase/serverless WebSocket Pool driver            | SQL-level control, small serverless footprint; Pool driver required for the atomic FR-006/FR-008 transaction (HTTP driver cannot do interactive transactions) |
 | Module decoupling  | In-process domain events (adapted from A2's Mediator/MediatR research to TypeScript) | ADR-03; avoids tight coupling between IssueManagement and RoutingAndAssignment without an external broker                                                     |
 
-
 ## Architecture Diagram
 
 ![CivicConnect architecture overview: logical layers and physical deployment tiers](architecture-diagram.png)
 
-*Figure 1: CivicConnect logical layers (left) versus physical deployment
+_Figure 1: CivicConnect logical layers (left) versus physical deployment
 tiers (right). The two are kept distinct per the
 proportional-architecture guidance: the logical view shows where the
 State (ADR-01), Decorator (ADR-02) and Mediator/domain-event (ADR-03)
 patterns sit in the domain layer, and the deployment view shows there
 are only two physical tiers (serverless app, managed database) rather
 than a distributed set of services, which the team's size and the ASRs
-above do not justify.*
-
+above do not justify.The architectural style this view illustrates is decided in ADR-05._
 
 ## Initial API / Integration Decision
 
@@ -75,4 +75,3 @@ instead of being invented here.
   RoutingAndAssignmentService out-of-process, this decision would need
   to be revisited and is noted as a forward engineering consideration
   rather than acted on now.
-
