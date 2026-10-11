@@ -44,9 +44,4 @@ familiarity alone.
 Versions/dependencies of record: Next.js ^16.4.0, React/React-DOM
 ^19.2.8, TypeScript ^5, Drizzle ORM ^0.45.3, drizzle-kit ^0.31.11,
 @neondatabase/serverless ^1.1.0 (from the M2 skeleton's package.json).
-Security/licensing note: all four are OSS (MIT-family licenses) with no
-known CVEs blocking use at the time of writing; this should be
-re-checked before final submission rather than treated as a one-time
-check.
-
-Regarding next.js version update, the version was raised from 16.3.7 on 11 October 2026 to clear six high-severity advisories (GHSA-3w37-wq28-93x7, GHSA-4jqv-mc3x-m676, GHSA-39w2-rjm5-chcv, GHSA-f87g-xv8r-7p7x, GHSA-mcj8-r9mp-w47p, GHSA-cjq9-62q9-8jv4).
+Security/licensing note: all four are OSS (MIT-family licenses). Next.js was raised from 16.3.7 to 16.4.0 on 11 October 2026 to clear six high-severity advisories (GHSA-3w37-wq28-93x7, GHSA-4jqv-mc3x-m676, GHSA-39w2-rjm5-chcv, GHSA-f87g-xv8r-7p7x, GHSA-mcj8-r9mp-w47p, GHSA-cjq9-62q9-8jv4). CI now fails on high-severity advisories in production dependencies. Dev-tooling findings with no upstream patch are accepted as risk R-12. Re-run `npm audit` at each milestone rather than treating this as a one-time check.

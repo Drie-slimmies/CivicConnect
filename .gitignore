@@ -7,4 +7,3 @@
 # Secrets / environment — never commit real credentials
 .env
 *.env.local
-!.env.example
