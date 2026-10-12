@@ -9,16 +9,15 @@ import { SelectField } from "@/components/ui/Fields";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
 const SORTS = {
-  urgency: "Most urgent first",
-  newest: "Newest first",
   oldest: "Oldest first",
+  newest: "Newest first",
 } as const;
 type Sort = keyof typeof SORTS;
 
 export function QueueView({ requests }: { requests: RequestDetail[] }) {
   const [status, setStatus] = useState("open");
   const [category, setCategory] = useState("all");
-  const [sort, setSort] = useState<Sort>("urgency");
+  const [sort, setSort] = useState<Sort>("oldest");
 
   const shown = useMemo(() => {
     const list = requests.filter(
@@ -26,13 +25,7 @@ export function QueueView({ requests }: { requests: RequestDetail[] }) {
         (status === "all" || (status === "open" ? r.status !== "resolved" && r.status !== "closed" : r.status === status)) &&
         (category === "all" || r.category === category),
     );
-    return list.sort((a, b) =>
-      sort === "urgency"
-        ? b.urgency - a.urgency || a.createdAt.localeCompare(b.createdAt)
-        : sort === "newest"
-          ? b.createdAt.localeCompare(a.createdAt)
-          : a.createdAt.localeCompare(b.createdAt),
-    );
+    return list.sort((a, b) => (sort === "newest" ? b.createdAt.localeCompare(a.createdAt) : a.createdAt.localeCompare(b.createdAt)));
   }, [requests, status, category, sort]);
 
   return (
@@ -74,7 +67,7 @@ export function QueueView({ requests }: { requests: RequestDetail[] }) {
             <li key={r.trackingId}>
               <Link
                 href={`/queue/${r.trackingId}`}
-                className="grid gap-3 rounded-card border border-line bg-surface p-5 shadow-soft transition-colors hover:border-primary md:grid-cols-[1fr_auto_auto] md:items-center md:gap-6"
+                className="grid gap-3 rounded-card border border-line bg-surface p-5 shadow-soft transition-colors hover:border-primary md:grid-cols-[1fr_auto] md:items-center md:gap-6"
               >
                 <div className="min-w-0">
                   <p className="text-sm text-muted">
@@ -85,7 +78,6 @@ export function QueueView({ requests }: { requests: RequestDetail[] }) {
                     {r.category}. {r.assignedTo ? `Assigned to ${r.assignedTo}.` : "Not assigned yet."}
                   </p>
                 </div>
-                <p className="text-sm font-medium">Urgency {r.urgency} of 5</p>
                 <StatusBadge status={r.status} />
               </Link>
             </li>

@@ -11,22 +11,25 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 export default function DashboardPage() {
   const all = listRequests();
-  const done = (s: string) => s === "resolved" || s === "closed";
-  const resolved = all.filter((r) => done(r.status)).length;
+  const count = (category: string | null, ...statuses: string[]) =>
+    all.filter((r) => (category === null || r.category === category) && statuses.includes(r.status)).length;
+  const open = count(null, "submitted", "assigned", "in_progress");
   const rows = CATEGORIES.map((category) => ({
     category,
-    open: all.filter((r) => r.category === category && !done(r.status)).length,
-    resolved: all.filter((r) => r.category === category && done(r.status)).length,
-  })).filter((r) => r.open + r.resolved > 0);
+    open: count(category, "submitted", "assigned", "in_progress"),
+    resolved: count(category, "resolved"),
+    closed: count(category, "closed"),
+  })).filter((r) => r.open + r.resolved + r.closed > 0);
 
   return (
     <RoleGate allow={["manager", "admin"]}>
       <PageTitle title="Dashboard">Where requests stand across all categories.</PageTitle>
       <div className="flex flex-col gap-10">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile label="Total requests" value={all.length} note="Everything received so far" />
-          <StatTile label="Open" value={all.length - resolved} note="Submitted, assigned or in progress" />
-          <StatTile label="Resolved" value={resolved} note="Resolved or closed" />
+          <StatTile label="Open" value={open} note="Submitted, assigned or in progress" />
+          <StatTile label="Resolved" value={count(null, "resolved")} note="Work done, waiting to be closed" />
+          <StatTile label="Closed" value={count(null, "closed")} note="Finalised and read-only" />
         </div>
 
         <section aria-labelledby="by-status">

@@ -71,12 +71,11 @@ export function RequestWorkspace({ initial }: { initial: RequestDetail }) {
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-8">
           <section aria-labelledby="details" className="rounded-card border border-line bg-surface p-6">
-            <h2 id="details" className="font-display text-xl font-semibold">
+            <h1 id="details" className="font-display text-2xl font-bold">
               {r.title}
-            </h2>
+            </h1>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
               <Item term="Category" value={r.category} />
-              <Item term="Urgency" value={`${r.urgency} of 5`} />
               <Item term="Location" value={r.location} />
               <Item term="Sent" value={formatDate(r.createdAt)} />
               <Item term="Assigned to" value={r.assignedTo ?? "Nobody yet"} />

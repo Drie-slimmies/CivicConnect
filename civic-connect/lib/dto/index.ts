@@ -38,6 +38,14 @@ export const ROLE_LABEL: Record<Role, string> = {
   admin: "Administrator",
 };
 
+// Where each role lands after signing in.
+export const ROLE_HOME: Record<Role, string> = {
+  requester: "/requests",
+  staff: "/queue",
+  manager: "/dashboard",
+  admin: "/dashboard",
+};
+
 // FR-002: controlled list of categories.
 export const CATEGORIES = [
   "Water and sanitation",
@@ -51,10 +59,9 @@ export type Category = (typeof CATEGORIES)[number];
 
 export const TRACKING_ID_PATTERN = /^CC-[A-Z0-9]{6}$/;
 
-// What anyone with a tracking ID may see. No personal data (POPIA).
+// What anyone with a tracking ID may see (CR-008). No title, description, location or names (POPIA).
 export interface PublicRequest {
   trackingId: string;
-  title: string;
   category: Category;
   status: Status;
   createdAt: string;
@@ -64,9 +71,9 @@ export interface PublicRequest {
 
 // Signed-in views add the fields below.
 export interface RequestDetail extends PublicRequest {
+  title: string;
   description: string;
   location: string;
-  urgency: 1 | 2 | 3 | 4 | 5;
   assignedTo: string | null;
   resolutionNotes: string | null;
   version: number;

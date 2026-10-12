@@ -1,9 +1,9 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { Role } from "@/lib/dto";
-import { ROLE_LABEL } from "@/lib/dto";
-import { useRole } from "@/lib/mock/role";
+import { ROLE_HOME, ROLE_LABEL } from "@/lib/dto";
+import { clearRole, useReady, useRole } from "@/lib/mock/role";
 
 type Item = { href: string; label: string; exact?: boolean };
 
@@ -11,11 +11,9 @@ const NAV: Record<Role, Item[]> = {
   requester: [
     { href: "/requests/new", label: "Report an issue" },
     { href: "/requests", label: "My requests", exact: true },
-    { href: "/track", label: "Track a request" },
   ],
   staff: [
     { href: "/queue", label: "Queue" },
-    { href: "/track", label: "Track a request" },
   ],
   manager: [
     { href: "/dashboard", label: "Dashboard" },
@@ -31,14 +29,17 @@ const NAV: Record<Role, Item[]> = {
 
 export function Header() {
   const role = useRole();
+  const ready = useReady();
+  const router = useRouter();
   const path = usePathname();
+  const items = role ? NAV[role] : [];
   const active = (i: Item) => (i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`));
 
   return (
     <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <Link href="/" className="flex items-center gap-2.5 font-display text-xl font-bold">
+          <Link href={role ? ROLE_HOME[role] : "/login"} className="flex items-center gap-2.5 font-display text-xl font-bold">
             <span aria-hidden className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-on-primary">
               <svg viewBox="0 0 16 16" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
                 <circle cx="4" cy="8" r="1.8" />
@@ -49,27 +50,38 @@ export function Header() {
             </span>
             CivicConnect
           </Link>
-          <p className="text-sm text-muted">
-            Previewing as {ROLE_LABEL[role]}.{" "}
-            <Link href="/login" className="font-medium text-primary underline underline-offset-2">
-              Switch role
-            </Link>
-          </p>
+          {ready && role && (
+            <p className="text-sm text-muted">
+              Signed in as {ROLE_LABEL[role]}.{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  clearRole();
+                  router.push("/login");
+                }}
+                className="font-medium text-primary underline underline-offset-2"
+              >
+                Sign out
+              </button>
+            </p>
+          )}
         </div>
-        <nav aria-label="Main" className="-mx-1 flex flex-wrap gap-1">
-          {NAV[role].map((i) => (
-            <Link
-              key={i.href}
-              href={i.href}
-              aria-current={active(i) ? "page" : undefined}
-              className={`min-h-11 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
-                active(i) ? "bg-primary-soft text-ink" : "text-muted hover:bg-primary-soft hover:text-ink"
-              }`}
-            >
-              {i.label}
-            </Link>
-          ))}
-        </nav>
+        {items.length > 0 && (
+          <nav aria-label="Main" className="-mx-1 flex flex-wrap gap-1">
+            {items.map((i) => (
+              <Link
+                key={i.href}
+                href={i.href}
+                aria-current={active(i) ? "page" : undefined}
+                className={`min-h-11 rounded-full px-4 py-2.5 text-sm font-medium transition-colors ${
+                  active(i) ? "bg-primary-soft text-ink" : "text-muted hover:bg-primary-soft hover:text-ink"
+                }`}
+              >
+                {i.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </div>
     </header>
   );

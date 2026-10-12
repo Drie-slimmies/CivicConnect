@@ -1,9 +1,9 @@
 import Link from "next/link";
-import type { PublicRequest } from "@/lib/dto";
+import type { RequestDetail } from "@/lib/dto";
 import { formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
-export function RequestCard({ request, href }: { request: PublicRequest; href: string }) {
+export function RequestCard({ request, href }: { request: RequestDetail; href: string }) {
   return (
     <li>
       <Link

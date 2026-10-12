@@ -47,10 +47,13 @@ established and are left as a forward engineering consideration (FEC)
 instead of being invented here.
 
 - Responsibilities and information exchanged: IssueManagementService
-  raises an IssueCreatedEvent carrying the issue ID, category, GPS
-  coordinates and urgency score; RoutingAndAssignmentService owns the
-  handler that consumes it and performs GIS-boundary lookup and staff
-  assignment.
+  raises an IssueCreatedEvent carrying the issue ID and category;
+  RoutingAndAssignmentService owns the handler that consumes it and
+  routes the request to the department for that category by setting the
+  request's department from a fixed category-to-department map. The
+  staff queue shows it as a label; staff still see all requests. The
+  handler does not assign a staff member: the request stays Submitted
+  until staff assign it (FR-005). Amended by CR-006 and CR-007.
 
 - Mechanism: in-process Mediator / domain events (ADR-03), not a network
   API. A2 compared this against an asynchronous message broker and a

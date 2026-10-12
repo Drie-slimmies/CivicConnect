@@ -46,7 +46,7 @@ export default async function TrackPage({ searchParams }: PageProps<"/track">) {
           </TicketStub>
           <section aria-labelledby="progress" className="rounded-card border border-line bg-surface p-6">
             <h2 id="progress" className="font-display text-xl font-semibold">
-              {request.title}
+              Progress
             </h2>
             <p className="mb-6 text-muted">{request.category}</p>
             <StatusTimeline history={request.history} />
