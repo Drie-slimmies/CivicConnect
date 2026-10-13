@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listMyRequests } from "@/lib/mock/data";
+import { getCurrentUser } from "@/lib/auth/guard";
+import { listMyRequests } from "@/lib/db/queries/requests";
 import { RequestCard } from "@/components/requests/RequestCard";
 import { buttonClass } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -8,8 +9,9 @@ import { PageTitle } from "@/components/ui/PageTitle";
 
 export const metadata: Metadata = { title: "My requests" };
 
-export default function MyRequestsPage() {
-  const requests = listMyRequests();
+export default async function MyRequestsPage() {
+  const user = await getCurrentUser();
+  const requests = user ? await listMyRequests(user.id) : [];
   return (
     <div>
       <PageTitle
