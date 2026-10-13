@@ -31,6 +31,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost/placeholder
 
       - name: Typecheck
         run: npx tsc --noEmit
