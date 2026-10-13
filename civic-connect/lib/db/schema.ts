@@ -5,7 +5,6 @@ import {
   text,
   varchar,
   integer,
-  doublePrecision,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -30,17 +29,12 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 150 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
+  // scrypt hash, never the password itself (CR-009, NFR-004).
+  passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("requester"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
   emailUnique: uniqueIndex("users_email_unique").on(table.email),
-}));
-
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
-  name: varchar("name", { length: 100 }).notNull(),
-}, (table) => ({
-  nameUnique: uniqueIndex("categories_name_unique").on(table.name),
 }));
 
 export const departments = pgTable("departments", {
@@ -50,6 +44,15 @@ export const departments = pgTable("departments", {
   nameUnique: uniqueIndex("departments_name_unique").on(table.name),
 }));
 
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  // Fixed category-to-department map used by the routing handler (CR-006).
+  departmentId: integer("department_id").notNull().references(() => departments.id),
+}, (table) => ({
+  nameUnique: uniqueIndex("categories_name_unique").on(table.name),
+}));
+
 export const serviceRequests = pgTable("service_requests", {
   id: serial("id").primaryKey(),
   trackingId: varchar("tracking_id", { length: 20 }).notNull(),
@@ -57,12 +60,8 @@ export const serviceRequests = pgTable("service_requests", {
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description").notNull(),
   location: text("location").notNull(),
-  gpsLat: doublePrecision("gps_lat"),
-  gpsLng: doublePrecision("gps_lng"),
 
   categoryId: integer("category_id").notNull().references(() => categories.id),
-
-  urgencyScore: integer("urgency_score"),
 
   status: requestStatusEnum("status").notNull().default("submitted"),
   resolutionNotes: text("resolution_notes"),
@@ -94,11 +93,16 @@ export const usersRelations = relations(users, ({ many }) => ({
   auditLogs: many(auditLogs),
 }));
 
-export const categoriesRelations = relations(categories, ({ many }) => ({
+export const categoriesRelations = relations(categories, ({ one, many }) => ({
+  department: one(departments, {
+    fields: [categories.departmentId],
+    references: [departments.id],
+  }),
   serviceRequests: many(serviceRequests),
 }));
 
 export const departmentsRelations = relations(departments, ({ many }) => ({
+  categories: many(categories),
   serviceRequests: many(serviceRequests),
 }));
 

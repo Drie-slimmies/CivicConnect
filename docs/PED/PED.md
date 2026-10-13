@@ -15,9 +15,9 @@
 
 **M2 additions:**
 - [RTM v2.0](../requirements/rtm.md)
-- [Risk Register](../risk/risk-register.md) (R-01 to R-11)
+- [Risk Register](../risk/risk-register.md) (R-01 to R-13)
 - [Engineering Decision Log](../decisions/) — ADR-0001 to ADR-0007
-- [Change Control](../change/change-control.md) — CR-001 to CR-005
+- [Change Control](../change/change-control.md) — CR-001 to CR-009
 - [Architecture Overview](../architecture/architecture.md)
 - [ASRs and Quality Drivers](../quality/quality-drivers.md)
 - [Deployment Direction and Compatibility](../deployment/deployment.md)

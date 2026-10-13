@@ -6,10 +6,10 @@
 
 | Entity (table) | Purpose | Owning module | Lifecycle |
 |---|---|---|---|
-| `users` | Requesters, staff, managers, admins (`role` enum). Holds personal data (name, email). | Access control (cross-cutting) | Created on registration; retained while the account is active. |
-| `categories` | Reference list of request types. | IssueManagement | Rarely changes; maintained by admin. |
-| `departments` | Reference list of responsible departments. | RoutingAndAssignment | Rarely changes; maintained by admin. |
-| `service_requests` | The core aggregate: one citizen request with location, status, urgency, assignment and resolution notes. | IssueManagement (create, status); RoutingAndAssignment (assignment fields) | submitted -> assigned -> in_progress -> resolved -> closed. Never hard-deleted; `closed` is a state, not a deletion. |
+| `users` | Requesters, staff, managers, admins (`role` enum). Holds personal data (name, email) and the password hash. | Access control (cross-cutting) | Requesters are created by self sign-up (CR-009); staff and manager accounts are seeded; retained while the account is active. |
+| `categories` | Reference list of request types. Each category maps to one department (CR-006). | IssueManagement | Rarely changes; set by the seed script (no administrator screen in M3). |
+| `departments` | Reference list of responsible departments. | RoutingAndAssignment | Rarely changes; set by the seed script (no administrator screen in M3). |
+| `service_requests` | The core aggregate: one citizen request with location (free text), status, department, assignment and resolution notes. | IssueManagement (create, status); RoutingAndAssignment (assignment fields) | submitted -> assigned -> in_progress -> resolved -> closed. Never hard-deleted; `closed` is a state, not a deletion. |
 | `audit_logs` | Append-only history of actions on a request (who, what, when). | Audit (Decorator, ADR-02) | Written on every significant action; never updated. |
 
 ```mermaid
@@ -17,6 +17,7 @@ erDiagram
     users ||--o{ service_requests : "requests (requester_id)"
     users |o--o{ service_requests : "assigned to (assigned_staff_id)"
     categories ||--o{ service_requests : "classifies"
+    departments ||--o{ categories : "handles"
     departments |o--o{ service_requests : "responsible for"
     service_requests ||--o{ audit_logs : "has history"
     users ||--o{ audit_logs : "performed by"
@@ -36,7 +37,7 @@ Reasoning chain (Week 2, SO8): evidence -> concern -> decision -> trade-off -> j
 
 ## 3. Integrity, consistency and concurrency
 
-- **Declared constraints (implemented):** primary keys, NOT NULL on required fields, foreign keys on all relationships, unique `users.email`, unique `service_requests.tracking_id`, unique category and department names, enum types for `role` and `status`.
+- **Declared constraints (implemented):** primary keys, NOT NULL on required fields, foreign keys on all relationships, unique `users.email`, unique `service_requests.tracking_id`, unique category and department names, `categories.department_id` foreign key to `departments`, enum types for `role` and `status`.
 - **Transaction boundary (planned, ADR-04):** a status update on `service_requests` and the matching `audit_logs` insert run in one interactive transaction using the Neon WebSocket Pool driver. If either fails, both roll back. Domain-event handlers that write to the database take part in the same transaction (ADR-03).
 - **Concurrency (partly implemented):** `service_requests.version` exists for optimistic concurrency. Planned behaviour: update with `WHERE id = ? AND version = ?`, increment `version`, and return a conflict error if no row matched (risk R-10).
 - **Current versus historical state:** `service_requests` holds the current state; `audit_logs` holds the history. Current assignment fields are overwritten on reassignment, and the audit entry preserves what was true at the time.
@@ -44,7 +45,7 @@ Reasoning chain (Week 2, SO8): evidence -> concern -> decision -> trade-off -> j
 
 ## 4. Sensitivity and security consequences
 
-- **Personal data:** `users.name`, `users.email`, and request `location`, `gps_lat`, `gps_lng`, `description` can identify a person or their address. These are personal information under POPIA (NFR-004).
+- **Personal data:** `users.name`, `users.email`, and request `title`, `location` and `description` can identify a person or their address. These are personal information under POPIA (NFR-004).
 - **Least privilege (planned):** the application connects with a database role that has no schema-change rights; role-based checks (`requester`, `staff`, `manager`, `admin`) are enforced in the application layer and the public tracking lookup returns only a minimal status view (a read-only DTO, not the full row).
 - **Secrets:** the connection string is read from environment variables and not committed (`.env.example` documents the variable name only).
 - **Encryption:** data is encrypted in transit (TLS to Neon). Field-level encryption of personal data is *planned* and not yet implemented; the RTM marks NFR-004 as "In Development" for this reason.

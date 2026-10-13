@@ -1,7 +1,8 @@
 # Requirements Baseline
 
 > Migrated from PED v1.0 (Word submission). Source content unchanged; reformatted into the repo's docs/ structure per lecturer feedback on Milestone 1 presentation.
-> Functional and Non-Functional Requirements updated for PED v2.0 per [CR-001 to CR-005](../change/change-control.md) (M1 IDs and scope realigned during M2). Everything else in this file is unchanged M1 content.
+> Functional and Non-Functional Requirements updated for PED v2.0 per [CR-001 to CR-005](../change/change-control.md) (M1 IDs and scope realigned during M2).
+> Scope Baseline, FR-001, FR-003, FR-004, FR-006, NFR-004 and the Security constraint updated in M3 per [CR-004 to CR-009](../change/change-control.md) (scope freeze). Everything else in this file is unchanged M1 content.
 
 # Problem and Business Need Analysis
 
@@ -132,8 +133,10 @@ notifications when every minor shift occurs where the engineering team
 is constrained to make use of only free or low-cost cloud tier
 infrastructure.
 
-**Reconciliation:** Requested real-time notifications will only be
-implemented on relevant, primary status transitions.
+**Reconciliation:** Notifications are deferred (see Deferred Scope).
+Requesters instead get the tracking ID on screen when they submit, a
+visible status on the tracking page and in their request list, and the
+resolution notes once the work is done.
 
 # Scope Baseline 
 
@@ -156,8 +159,9 @@ implemented on relevant, primary status transitions.
 <tr class="odd">
 <td>In- Scope</td>
 <td><ul>
-<li><p>Public and internal request submission form</p></li>
-<li><p>Request status lookup page</p></li>
+<li><p>Request submission form (signed-in users)</p></li>
+<li><p>Sign-up (requesters only) and sign-in</p></li>
+<li><p>Request status lookup page (public, limited fields)</p></li>
 <li><p>Staff workbench to filter, sort and update tasks</p></li>
 <li><p>Management performance dashboard</p></li>
 <li><p>Immutable audit log for state changes</p></li>
@@ -181,10 +185,15 @@ web API data integrity, security and basic architecture</td>
 <td><ul>
 <li><p>Automated GIS route planning for technicians.</p></li>
 <li><p>SMS and WhatsApp push notifications.</p></li>
+<li><p>Overdue Tracking</p></li>
+<li><p>Notifications of any kind (SMS, WhatsApp, in-app and email)</p></li>
+<li><p>Password reset and email verification</p></li>
+<li><p>Administrator screen for managing users</p></li>
+<li><p>Filtering requests by department</p></li>
 </ul></td>
 <td>Integrating external messaging gateways right now adds extra costs
-and third-party dependencies before our core web API are even
-stable.</td>
+and third-party dependencies before our core web API are even stable.
+No resolution time limits defined by stakeholders.</td>
 </tr>
 </tbody>
 </table>
@@ -217,11 +226,16 @@ stable.</td>
 <td>FR-001</td>
 <td>Request Submission</td>
 <td>Authenticated users will be allowed to submit a new service request
-with a title, description and location via the system.</td>
+with a title, description and location via the system. A visitor
+becomes an authenticated user by signing up with a name, email and
+password, which always creates a requester account.</td>
 <td>High</td>
 <td>Requester</td>
 <td>When a logged in user enters valid details then a ticket with a
-unique ID is generated and status is set to submitted.</td>
+unique ID is generated and status is set to submitted. Signing up with
+a new email and a password of at least 8 characters creates a requester
+account; a duplicate email, a short password, or a role supplied in the
+form is rejected.</td>
 </tr>
 <tr class="even">
 <td>FR-002</td>
@@ -239,21 +253,28 @@ error.</td>
 <td>Status Tracking</td>
 <td>Requesters can view request status in two ways, authenticated users
 can see their requests as a list or public tracking through the input of
-a request tracking ID</td>
+a request tracking ID. The public page shows only the tracking ID,
+category, status, dates and status history. It never shows the title,
+description, location or any names.</td>
 <td>High</td>
 <td>Requester</td>
-<td>When a requester views their dashboard with the list of their active
-requests, each item will display a correct status.</td>
+<td>When a requester views their dashboard with the list of all their
+requests, each item will display a correct status. Entering a valid
+tracking ID shows only the public fields; an unknown ID shows a
+not-found message.</td>
 </tr>
 <tr class="even">
 <td>FR-004</td>
 <td>Staff Requests Queue</td>
 <td>System shall display a queue of current service requests to
-authorized staff members.</td>
+authorized staff members. Staff can search, filter by status and
+category, sort by date, and open any request to see its full
+details.</td>
 <td>High</td>
 <td>Staff</td>
 <td>When a logged in staff member accesses the ticket queue, all
-relevant requests will be displayed for them.</td>
+requests are displayed, and filtering, sorting and opening a request to
+see its full details work.</td>
 </tr>
 <tr class="odd">
 <td>FR-005</td>
@@ -270,7 +291,10 @@ to Me” or transfers the ticket to another staff member.</td>
 <td>FR-006</td>
 <td>Status Transition</td>
 <td><p>Only valid state transformations shall be allowed when updating
-the status of valid tickets along with closing resolution notes.</p>
+the status of valid tickets along with closing resolution notes.
+Resolved means the work is done and the notes are recorded; Closed
+means an authorised user has finalised it. A Closed request cannot be
+changed or reopened.</p>
 <p>(Submitted -&gt;</p>
 <p>Assigned -&gt;</p>
 <p>In Progress -&gt;</p>
@@ -280,7 +304,9 @@ the status of valid tickets along with closing resolution notes.</p>
 <td><p>Staff/</p>
 <p>Management</p></td>
 <td>When a ticket that is still in progress gets updated to “Resolved”,
-resolution notes must be applied before acceptance.</td>
+resolution notes must be applied before acceptance. Closing a Resolved
+ticket is done by an authorised staff member or manager, and the ticket
+is read-only afterwards.</td>
 </tr>
 <tr class="odd">
 <td>FR-007</td>
@@ -313,7 +339,7 @@ created and stored in the database.</td>
 | NFR-001 | Performance      | Efficient page loading and search queries must return under a base time limit of less than 2 seconds       | Utilizing methods such as lighthouse execution for stress tests       |
 | NFR-002 | Availability     | System uptime shall achieve more than 99% uptime during operating hours                                    | Uptime monitoring is done automatically with endpoint checks.         |
 | NFR-003 | Usability        | UI shall support devices all the way down to a 360px viewport width.                                       | Testing through browser dev tools to manipulate layout.               |
-| NFR-004 | POPIA encryption | Personal data is only visible to the authorized requester it belongs to and authorized staff and managers. | Role-based access tests along with reviews of the public lookup page. |
+| NFR-004 | POPIA encryption | Personal data is only visible to the authorized requester it belongs to and authorized staff and managers. | Role-based access tests along with reviews of the public lookup page. The review checks that the page shows only the fields listed in FR-003. Sign-up tests check that a user cannot choose their own role. |
 
 ##  
 
@@ -324,7 +350,7 @@ created and stored in the database.</td>
 
 **Specification:** The scope gets defined by CivicConnect’s core
 baseline capabilities that need to be implemented which can be seen at
-the listed table. These requirements are seen as deliverables that must
+the listed Functional Requirements (FRs) table. These requirements are seen as deliverables that must
 be implemented.
 
 **Analysis:** Unnecessary feature expansion and addition can directly
@@ -374,7 +400,10 @@ memory and runtime restrictions.
 
 ## Quality
 
-**Specification:**
+**Specification:** Following non-functional requirements listed in the
+Non-Functional Requirements (NFRs) table that can be seen above. Do not
+contribute to meeting the defined deliverables defined for the system,
+however, would be beneficial for overall system usability.
 
 **Analysis:** Architectural discipline will be needed from day one to
 ensure quality metrics will be met within the constraint of free-tier
@@ -402,6 +431,24 @@ unauthorized users.
 - Authorization cannot solely rely on UI component setups; backend logic
   must also be utilized to ensure proper flow when handling sensitive
   data.
+
+- Users are real database accounts with a role (requester, staff or
+  manager). Requesters sign up themselves and always get the requester
+  role, which the server sets and never reads from the form. Staff and
+  manager accounts are created by a seed script. They sign in with email
+  and password, passwords are stored only as hashes, and the role is
+  checked in the API on every request, not only in the UI.
+
+- Requester: submits requests and sees their own requests. Anyone with a
+  tracking ID: sees the limited public status only. Staff: see all
+  requests, search, filter, sort, assign a request to themselves or
+  another staff member, move it forward one step, add notes, resolve and
+  close. Manager: everything staff can do, plus the dashboard and the
+  audit log.
+
+- The administrator role exists in the data model but has no features in
+  M3. Password reset, email verification and an administrator screen are
+  deferred.
 
 ## Constraint interactions/trade-offs
 
