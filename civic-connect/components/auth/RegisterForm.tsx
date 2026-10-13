@@ -1,9 +1,9 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { signUp } from "@/lib/mock/auth";
+import { postAuth } from "@/lib/auth/client";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { SuccessPopup } from "@/components/auth/SuccessPopup";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Fields";
 import { Notice } from "@/components/ui/Notice";
@@ -25,10 +25,10 @@ function validate(name: string, email: string, password: string): Errors {
 }
 
 export function RegisterForm() {
-  const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
 
   async function onSubmit(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
@@ -44,13 +44,16 @@ export function RegisterForm() {
       return;
     }
     setBusy(true);
-    const result = await signUp(email);
+    const result = await postAuth("register", { name, email, password });
     if (result.ok) {
-      router.push("/requests/new");
+      setDone(true);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload so the root layout re-reads the session cookie
+      window.location.href = "/requests/new";
       return;
     }
     setBusy(false);
-    setErrors({ email: result.error });
+    setErrors(result.errors);
     requestAnimationFrame(() => form.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
   }
 
@@ -63,6 +66,7 @@ export function RegisterForm() {
       switchHref="/login"
     >
       <form ref={form} onSubmit={onSubmit} noValidate aria-busy={busy} className="flex flex-col gap-5">
+        {done && <SuccessPopup title="Account created" text="Taking you to the request form…" />}
         {Object.keys(errors).length > 0 && <Notice kind="error" title="Fix the highlighted fields, then try again." />}
         <TextField label="Name" name="name" required autoComplete="name" error={errors.name} />
         <TextField label="Email" name="email" type="email" required autoComplete="email" error={errors.email} />

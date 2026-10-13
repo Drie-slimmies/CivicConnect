@@ -3,14 +3,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Role } from "@/lib/dto";
 import { ROLE_LABEL } from "@/lib/dto";
-import { useReady, useRole } from "@/lib/mock/role";
+import { useRole } from "@/components/auth/SessionProvider";
 import { buttonClass } from "@/components/ui/Button";
 
-// Prototype gate. Real authorisation must also be enforced by the API, never by the UI alone.
+// UI gate only. The API enforces access with requireRole().
 export function RoleGate({ allow, children }: { allow: Role[]; children: ReactNode }) {
   const role = useRole();
-  const ready = useReady();
-  if (!ready) return null;
   if (role && allow.includes(role)) return <>{children}</>;
 
   return (

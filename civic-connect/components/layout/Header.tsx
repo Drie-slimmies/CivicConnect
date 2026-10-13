@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { Role } from "@/lib/dto";
 import { ROLE_HOME, ROLE_LABEL } from "@/lib/dto";
-import { clearRole, useReady, useRole } from "@/lib/mock/role";
+import { useRole } from "@/components/auth/SessionProvider";
+import { buttonClass } from "@/components/ui/Button";
 
 type Item = { href: string; label: string; exact?: boolean };
 
@@ -29,8 +30,6 @@ const NAV: Record<Role, Item[]> = {
 
 export function Header() {
   const role = useRole();
-  const ready = useReady();
-  const router = useRouter();
   const path = usePathname();
   const items = role ? NAV[role] : [];
   const active = (i: Item) => (i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`));
@@ -50,14 +49,20 @@ export function Header() {
             </span>
             CivicConnect
           </Link>
-          {ready && role && (
+          {!role && path.startsWith("/track") && (
+            <Link href="/login" className={buttonClass("primary")}>
+              Sign in
+            </Link>
+          )}
+          {role && (
             <p className="text-sm text-muted">
               Signed in as {ROLE_LABEL[role]}.{" "}
               <button
                 type="button"
-                onClick={() => {
-                  clearRole();
-                  router.push("/login");
+                onClick={async () => {
+                  await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+                  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload so the root layout re-reads the session cookie
+                  window.location.href = "/login";
                 }}
                 className="font-medium text-primary underline underline-offset-2"
               >
