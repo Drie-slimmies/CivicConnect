@@ -13,10 +13,11 @@ Community service request management platform, built for SEN381 (Group M: Mark M
 - [Architecture Overview](docs/architecture/architecture.md)
 - [ASRs and Quality Drivers](docs/quality/quality-drivers.md)
 - [Deployment Direction and Compatibility](docs/deployment/deployment.md)
-- [Data and Persistence Baseline](docs/architecture/data-persistence-baseline.md) — not yet written, logged as a known gap
+- [Data and Persistence Baseline](docs/architecture/data-persistence-baseline.md)
+- [Technical Debt Register](docs/quality/technical-debt-register.md)
 - [AI Usage Register](docs/ai-usage-register.md)
 - [Contributing / Repository Governance](CONTRIBUTING.md)
 
 ## Status
 
-Milestone 1 (Engineering Foundation & Requirements Baseline) complete. Milestone 2 (Architecture, Technology & Initial Design Baseline) baseline added; Data/Persistence Baseline still outstanding.
+Milestone 1 (Engineering Foundation & Requirements Baseline) complete. Milestone 2 (Architecture, Technology & Initial Design Baseline) baseline added, including the Data/Persistence Baseline. Milestone 3 (Controlled Construction, Integration, Quality & Release Readiness) is in progress: requester sign-up, sign-in and role-based sessions are built and tested; the request, staff and manager features are still to come. See [civic-connect/README.md](civic-connect/README.md) for setup.

@@ -26,8 +26,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost/placeholder
 
       - name: Typecheck
         run: npx tsc --noEmit

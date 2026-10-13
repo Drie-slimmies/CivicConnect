@@ -13,15 +13,24 @@ implemented prematurely.
   WebSocket Pool driver exists specifically to let a serverless function
   hold the kind of interactive connection FR-006/FR-008 need.
 
-- Configuration/secrets: the Neon connection string and any future auth
-  secrets are read from environment variables, not committed to the repo
-  (see the .env.example work tracked under issue \#3); a serverless
-  host's own secret-manager/env-var store is the intended production
-  equivalent.
+- Configuration/secrets: the Neon connection string (DATABASE_URL) and
+  the session signing secret (SESSION_SECRET, at least 32 characters)
+  are read from environment variables, not committed to the repo;
+  .env.example lists the names with placeholders only. The seed
+  passwords (SEED_STAFF_PASSWORD, SEED_MANAGER_PASSWORD,
+  SEED_REQUESTER_PASSWORD) are needed only when the seed script is run.
+  Each environment (development, staging, production) must have its own
+  SESSION_SECRET; changing it signs every user out, which is also the
+  contingency in R-13. The session cookie is marked Secure when
+  NODE_ENV is production, so staging and production must be served over
+  HTTPS. A serverless host's own secret-manager/env-var store is the
+  intended production equivalent.
 
 - Persistence/state implications: the application tier itself is
   stateless (each request/function invocation is independent); all
-  durable state lives in Neon. This is what makes the serverless
+  durable state lives in Neon. Sign-in sessions are signed cookies, not
+  server-side sessions (ADR-06), so no session store has to be shared
+  between serverless instances. This is what makes the serverless
   deployment direction viable in the first place.
 
 - Networking implications: outbound-only from the app tier to Neon over

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth/guard";
+import { ROLE_HOME } from "@/lib/dto";
 
-// The app starts at sign in. Public tracking stays reachable at /track.
-export default function Home() {
-  redirect("/login");
+export default async function Home() {
+  const user = await getCurrentUser();
+  redirect(user ? ROLE_HOME[user.role] : "/login");
 }

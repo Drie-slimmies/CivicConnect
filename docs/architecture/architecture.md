@@ -78,3 +78,19 @@ instead of being invented here.
   RoutingAndAssignmentService out-of-process, this decision would need
   to be revisited and is noted as a forward engineering consideration
   rather than acted on now.
+
+## Authentication and Session Design
+
+Added on 13 October 2026 (authentication branch). Decision: [ADR-06](../decisions/0009-signed-cookie-sessions-with-jose.md). Scope: [CR-009](../change/change-control.md). Risk: R-13.
+
+- Where it lives: everything about identity is in `civic-connect/lib/auth/` so a flaw can be reviewed in one place. `password.ts` hashes and verifies passwords (scrypt from Node's crypto module). `session.ts` creates and checks the signed session token and reads and writes the cookie. `guard.ts` turns the cookie into the current user and checks roles. `client.ts` is the browser helper the sign-in and sign-up forms use.
+
+- Routes: `POST /api/auth/register` (always creates a requester), `POST /api/auth/login`, `POST /api/auth/logout`. Staff and manager accounts are created by the seed script only.
+
+- Session: after a successful sign-up or sign-in the server sets one cookie (`civicconnect_session`): HTTP-only, SameSite=Lax, Secure in production, valid for 8 hours. It holds a token signed with `SESSION_SECRET` (HS256, via the `jose` library) that carries the user id and role.
+
+- Authorisation: every protected route handler calls `requireRole(...)` first. The guard verifies the token, then loads the user from the database and uses the role stored there, not the role inside the token. It answers 401 when nobody is signed in and 403 when the role is not allowed. The screens (`SessionProvider`, `RoleGate`, header) only decide what to show; the API is what enforces access.
+
+- Security boundary: unlike the in-process event above, this is a network-facing boundary. The same response is returned for an unknown email and a wrong password, and the password hash is never returned by any route.
+
+- Known limits: no login rate limiting and no way to revoke a single session (technical debt register TD-01 and TD-02).

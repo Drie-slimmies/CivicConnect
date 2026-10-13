@@ -1,6 +1,6 @@
 # Data and Persistence Baseline
 
-**Status: initial baseline for Milestone 2 (October 2026).** Written against the schema in `civic-connect/lib/db/schema.ts`, ADR-04 (stack) and ADR-05 (architectural style) in the PED, and brief section 5.4. Sections marked *planned* describe intended design that is not yet implemented.
+**Status: initial baseline for Milestone 2 (October 2026).** Written against the schema in `civic-connect/lib/db/schema.ts`, ADR-04 (stack) and ADR-05 (architectural style) in the PED, and brief section 5.4. Sections marked *planned* describe intended design that is not yet implemented. Updated on 13 October 2026 for the authentication branch (password hashes, sessions, role checks) and to record that audit immutability is now enforced by the database (migration 0001).
 
 ## 1. Entities, relationships, ownership and lifecycle
 
@@ -37,7 +37,7 @@ Reasoning chain (Week 2, SO8): evidence -> concern -> decision -> trade-off -> j
 
 ## 3. Integrity, consistency and concurrency
 
-- **Declared constraints (implemented):** primary keys, NOT NULL on required fields, foreign keys on all relationships, unique `users.email`, unique `service_requests.tracking_id`, unique category and department names, `categories.department_id` foreign key to `departments`, enum types for `role` and `status`.
+- **Declared constraints (implemented):** primary keys, NOT NULL on required fields, foreign keys on all relationships, unique `users.email` (the index is case-sensitive, so the application trims and lowercases every email before it is stored or compared, and a duplicate that slips past the check is caught through Postgres error 23505), unique `service_requests.tracking_id`, unique category and department names, `categories.department_id` foreign key to `departments`, enum types for `role` and `status`.
 - **Transaction boundary (planned, ADR-04):** a status update on `service_requests` and the matching `audit_logs` insert run in one interactive transaction using the Neon WebSocket Pool driver. If either fails, both roll back. Domain-event handlers that write to the database take part in the same transaction (ADR-03).
 - **Concurrency (partly implemented):** `service_requests.version` exists for optimistic concurrency. Planned behaviour: update with `WHERE id = ? AND version = ?`, increment `version`, and return a conflict error if no row matched (risk R-10).
 - **Current versus historical state:** `service_requests` holds the current state; `audit_logs` holds the history. Current assignment fields are overwritten on reassignment, and the audit entry preserves what was true at the time.
@@ -46,8 +46,10 @@ Reasoning chain (Week 2, SO8): evidence -> concern -> decision -> trade-off -> j
 ## 4. Sensitivity and security consequences
 
 - **Personal data:** `users.name`, `users.email`, and request `title`, `location` and `description` can identify a person or their address. These are personal information under POPIA (NFR-004).
-- **Least privilege (planned):** the application connects with a database role that has no schema-change rights; role-based checks (`requester`, `staff`, `manager`, `admin`) are enforced in the application layer and the public tracking lookup returns only a minimal status view (a read-only DTO, not the full row).
-- **Secrets:** the connection string is read from environment variables and not committed (`.env.example` documents the variable name only).
+- **Least privilege (partly implemented):** role-based checks (`requester`, `staff`, `manager`, `admin`) are enforced in the application layer by `requireRole()` in `lib/auth/guard.ts`, which reads the user's role from the `users` table on every request and does not trust the role stored in the session cookie. It is applied to data routes as they are built. Planned: the application connects with a database role that has no schema-change rights, and the public tracking lookup returns only a minimal status view (a read-only DTO, not the full row).
+- **Passwords (implemented):** `users.password_hash` holds an scrypt hash (random 16-byte salt, 64-byte key) and nothing else about the password. The hash is never returned by any route; the login lookup is the only query that selects it.
+- **Sessions (implemented):** there is no sessions table. A session is a signed token in an HTTP-only cookie (ADR-06), so nothing about sessions is stored in the database. Consequence: a single session cannot be revoked; see TD-02 in the technical debt register.
+- **Secrets:** the connection string (`DATABASE_URL`), the session signing secret (`SESSION_SECRET`) and the seed passwords (`SEED_*`) are read from environment variables and not committed (`.env.example` documents the names with placeholders only).
 - **Encryption:** data is encrypted in transit (TLS to Neon). Field-level encryption of personal data is *planned* and not yet implemented; the RTM marks NFR-004 as "In Development" for this reason.
 - **Backups are sensitive too:** restored or exported copies carry the same personal data and need the same protection.
 
@@ -73,7 +75,7 @@ Expected volume is low (a request is a single row plus a few audit rows). A sing
 
 ## 7. Known gaps in the current schema (honest list)
 
-1. **Audit immutability is not enforced by the database.** `audit_logs` can currently be updated or deleted by any role with write access. FR-008 says "immutable"; for now this is enforced by application convention only. Planned: revoke UPDATE/DELETE on `audit_logs` for the application role.
+1. **Audit immutability (resolved at database level, residual gap).** Migration `0001_audit_immutable.sql` adds triggers that reject UPDATE, DELETE and TRUNCATE on `audit_logs`. A database owner could still drop the trigger. Planned: also revoke UPDATE/DELETE on `audit_logs` from the application role.
 2. **Audit entries do not record old and new status.** They hold `action` and `notes` only. Planned: add structured fields if reporting needs them.
 3. **No secondary indexes yet** for the staff queue (see section 6).
 4. **No `ON DELETE` behaviour declared** on foreign keys. Because records are closed rather than deleted this is low risk, but it should be stated explicitly when migrations are added.
@@ -81,6 +83,6 @@ Expected volume is low (a request is a single row plus a few audit rows). A sing
 
 ## 8. Decisions and risks recorded
 
-- Related decisions: ADR-03 (events share the transaction), ADR-04 (stack and Pool driver), ADR-05 (modular monolith, single database), ED-04 and ED-05 in the Decision Log.
-- Related risks: R-07 (cold start), R-08 (free-tier compute cap), R-09 (connection pool), R-10 (concurrent updates), R-11 (POPIA controls).
+- Related decisions: ADR-03 (events share the transaction), ADR-04 (stack and Pool driver), ADR-05 (modular monolith, single database), ADR-06 (signed-cookie sessions), ED-04, ED-05 and ED-07 in the Decision Log.
+- Related risks: R-07 (cold start), R-08 (free-tier compute cap), R-09 (connection pool), R-10 (concurrent updates), R-11 (POPIA controls), R-13 (hand-written sign-up and sign-in).
 - RTM: NFR-004 and FR-008 rows reference `lib/db/schema.ts`; their status stays accurate to what is implemented.

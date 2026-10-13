@@ -16,14 +16,15 @@
 **M2 additions:**
 - [RTM v2.0](../requirements/rtm.md)
 - [Risk Register](../risk/risk-register.md) (R-01 to R-13)
-- [Engineering Decision Log](../decisions/) — ADR-0001 to ADR-0007
+- [Engineering Decision Log](../decisions/) — ADR-0001 to ADR-0009
 - [Change Control](../change/change-control.md) — CR-001 to CR-009
 - [Architecture Overview](../architecture/architecture.md)
 - [ASRs and Quality Drivers](../quality/quality-drivers.md)
 - [Deployment Direction and Compatibility](../deployment/deployment.md)
-- [Data and Persistence Baseline](../architecture/data-persistence-baseline.md) — **not yet written, deferred past the M2 deadline, logged as a known gap**
+- [Data and Persistence Baseline](../architecture/data-persistence-baseline.md) — deferred past the M2 deadline, since written and updated for authentication on 13 October 2026
 - [GitHub Governance and Team Repository Controls](../../CONTRIBUTING.md)
 - [AI Usage Register](../ai-usage-register.md)
+- [Technical Debt Register](../quality/technical-debt-register.md) (added in M3)
 
 ## 12.2 Baseline Verification Checklist (M1)
 
@@ -61,13 +62,26 @@ By signing below, the engineering team members certify that the contents of PED 
 
 **Integration approach:** PED v2.0 folds the M2 architecture and technology-stack baseline (Architecture Overview, ADR-0004 to ADR-0007), the expanded Risk Register (R-07 to R-11) and Decision Log, the RTM's architecture/implementation/verification columns, CR-001 to CR-005, and the updated GitHub governance evidence into the M1 baseline without silently overwriting it — all superseded M1 content stays visible above, and every change is tracked through the [Change Control table](../change/change-control.md).
 
-**Known gap:** the Data and Persistence Baseline (brief section 5.4) is not yet complete — deferred past this submission due to time constraints, logged here rather than left unmentioned. See [docs/architecture/data-persistence-baseline.md](../architecture/data-persistence-baseline.md).
+**Known gap:** the Data and Persistence Baseline (brief section 5.4) is not yet complete — deferred past this submission due to time constraints, logged here rather than left unmentioned. See [docs/architecture/data-persistence-baseline.md](../architecture/data-persistence-baseline.md). Update (October 2026): the baseline has since been written.
 
 **Sign-off:** this M2 baseline (architecture, technology stack and initial design) is approved for implementation by Team M — Ruan Jordaan (601715), Mark Minnaar (602267), Armand Erasmus (601631) — pending the usual PR-review process for any further change.
 
 ---
 
+## M3 Progress: Authentication (auth branch, 13 October 2026)
+
+First slice of the M3 integrated increment. Evidence index; the detail stays in the linked artefacts.
+
+- **Scope and change:** FR-001 (requester sign-up and sign-in) and NFR-004; [CR-009](../change/change-control.md).
+- **Implementation:** `civic-connect/lib/auth/`, `civic-connect/app/api/auth/` (register, login, logout), `civic-connect/components/auth/`. Row status in the [RTM](../requirements/rtm.md): FR-001 and NFR-004 In Development (the request submission route and field encryption are still to come).
+- **Decision:** [ADR-06](../decisions/0009-signed-cookie-sessions-with-jose.md) (ED-07), signed-cookie sessions with `jose`; [architecture](../architecture/architecture.md) section "Authentication and Session Design".
+- **Verification:** 25 automated tests in `civic-connect/tests/` (`npm test`, all passing on 13 October 2026), listed with their requirement basis in the RTM "Test evidence" section. The CI workflow runs them on every pull request.
+- **Risk:** [R-13](../risk/risk-register.md) mitigation implemented and tested; R-05 stays open.
+- **Debt and limits:** [Technical Debt Register](../quality/technical-debt-register.md) (TD-01 to TD-09).
+- **AI use:** logged in the [AI Usage Register](../ai-usage-register.md).
+
 ## Version History
 
 - **v1.0** (9 September 2026) — Milestone 1 baseline, originally submitted as a Word document, migrated into this repository as Markdown.
 - **v2.0** (30 September 2026) — Architecture, technology-stack and initial design baseline added (ADR-0004 to ADR-0007); RTM, Risk Register and Decision Log extended; Change Control log introduced for CR-001 to CR-005; GitHub governance updated to match the live repository. Data/Persistence Baseline deferred, logged as an open item.
+- **v3.0** (in progress, October 2026) — this document continues as the M3 evidence index. The authentication slice is the first entry (see M3 Progress above); the version is finalised at release.
