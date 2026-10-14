@@ -2,11 +2,11 @@
 
 Community service request management application for SEN381 (Group M). This folder holds the Next.js application. Project governance, requirements, decisions and registers are in the repository's top-level [`docs/`](../docs) folder and the [root README](../README.md).
 
-**Status (Milestone 3 work in progress):** the project skeleton, database schema, CI, requester sign-up, sign-in, sign-out and role-based session handling are in place and tested. The request, staff and manager features are still to be built; those screens show sample data. Items marked _planned_ below do not exist yet.
+**Status (Milestone 3 work in progress):** the project skeleton, database schema, CI, requester sign-up, sign-in, sign-out and role-based session handling, and the requester features (submit a request, my requests, request details, public tracking) are in place and tested. The staff and manager features are still to be built; those screens show sample data. New requests are not yet routed to a department. Items marked _planned_ below do not exist yet.
 
 ## Stack
 
-Next.js 16.4.0 (App Router, Route Handlers), React 19, TypeScript, Drizzle ORM with the Neon WebSocket Pool driver, Neon serverless PostgreSQL. Rationale and alternatives: [ADR-04](../docs/decisions/0007-technology-stack-nextjs-neon-drizzle.md). Architectural style (modular monolith): ADR-05 in the PED.
+Next.js 16.4.0 (App Router, Route Handlers), React 19, TypeScript, Drizzle ORM with the Neon WebSocket Pool driver, Neon serverless PostgreSQL. Rationale and alternatives: [ADR-04](../docs/decisions/0007-technology-stack-nextjs-neon-drizzle.md). Architectural style (plain layered monolith, CR-010): [ADR-05](../docs/decisions/0008-architectural-style-plain-layered-monolith.md).
 
 ## Prerequisites
 
@@ -56,7 +56,7 @@ Only variable names and placeholders belong in `.env.example`. Real values stay 
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `npm run dev`                             | Start the development server at http://localhost:3000                                          |
 | `npm run lint`                            | ESLint                                                                                         |
-| `npm test`                                | Vitest unit and API tests in `tests/` (25 tests). They need no database and no `.env`.         |
+| `npm test`                                | Vitest unit and API tests in `tests/` (39 tests). They need no database and no `.env`.         |
 | `npm run db:migrate`                      | Apply the committed migrations to the database in `DATABASE_URL`                               |
 | `npm run db:seed`                         | Insert reference data and the three demo accounts                                              |
 | `npx tsc --noEmit`                        | Type check (run after `npm run build`, because Next.js generates route types during the build) |
@@ -69,16 +69,17 @@ The same checks run in GitHub Actions on every pull request and push to `main` (
 
 | Path              | Contents                                                                            |
 | ----------------- | ----------------------------------------------------------------------------------- |
-| `app/`            | Next.js routes and pages. Implemented endpoints: `app/api/health` and `app/api/auth/register`, `login` and `logout`. |
+| `app/`            | Next.js routes and pages. Implemented endpoints: `app/api/health`, `app/api/auth/register`, `login` and `logout`, and `POST app/api/requests`. Requester screens: `app/(requester)/requests`, `app/track`. |
 | `lib/auth/`       | Passwords (`password.ts`), signed sessions (`session.ts`), current user and role checks (`guard.ts`), browser helper (`client.ts`) |
 | `components/auth/` | Sign-in and sign-up forms, the session provider and the success popup |
 | `scripts/`        | `seed.mjs`: reference data and demo accounts |
 | `drizzle/`        | Committed SQL migrations (`0001` makes `audit_logs` append-only) |
-| `lib/db/`         | Drizzle schema (`schema.ts`) and database client (`index.ts`)                       |
+| `lib/db/`         | Drizzle schema (`schema.ts`), database client (`index.ts`) and queries (`queries/requests.ts`) |
+| `lib/requests/`   | Request rules: field reading, validation, public view (`rules.ts`) |
+| `components/requests/` | Requester screens' components (request cards, forms) |
 | `lib/states/`     | State pattern for the request lifecycle (ADR-01); _stub files only_                 |
 | `lib/decorators/` | Audit logging decorator (ADR-02); _stub file only_                                  |
-| `lib/events/`     | In-process domain events (ADR-03); _stub files only_                                |
-| `tests/`          | Automated tests: `tests/unit/auth` (unit) and `tests/api/auth` (API handlers with the database mocked) |
+| `tests/`          | Automated tests: `tests/unit/auth` and `tests/unit/requests` (unit), `tests/api/auth` and `tests/api/requests` (API handlers with the database mocked) |
 
 ## Authentication
 
@@ -86,9 +87,10 @@ Sign-up always creates a requester; staff and manager accounts come from the see
 
 ## Known limitations
 
-- Sign-up, sign-in, sign-out and role checks work, but no request-data route is guarded yet because those routes are not built. Pages other than sign-in and sign-up still show sample data from `lib/mock/data.ts` (risk R-05: use dummy data only).
+- Sign-up, sign-in, sign-out, role checks and the requester features work. The staff and manager pages still show sample data from `lib/mock/data.ts` and have no guarded routes yet (risk R-05: use dummy data only).
 - Not built: password reset, email verification, login rate limiting and per-session revocation. They are recorded in the [technical debt register](../docs/quality/technical-debt-register.md) and risk R-13.
-- The API tests mock the database, so they do not check SQL or constraints against a real database.
+- The API and query tests mock the database, so they do not check SQL, constraints or the request-plus-audit transaction against a real database.
+- Department routing, assignment, status changes and the audit decorator are not built (FR-002 partly, FR-004 to FR-008); `lib/events/` stubs are obsolete under CR-010 and are to be removed.
 - Several `lib/` files are empty stubs for decisions that are documented but not yet built. The [RTM](../docs/requirements/rtm.md) states the real status of each requirement.
 - Dev-tooling vulnerabilities with no upstream patch are accepted as risk R-12 (CI gates production dependencies only).
 

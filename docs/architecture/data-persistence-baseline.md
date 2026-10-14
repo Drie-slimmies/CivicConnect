@@ -1,15 +1,15 @@
 # Data and Persistence Baseline
 
-**Status: initial baseline for Milestone 2 (October 2026).** Written against the schema in `civic-connect/lib/db/schema.ts`, ADR-04 (stack) and ADR-05 (architectural style) in the PED, and brief section 5.4. Sections marked *planned* describe intended design that is not yet implemented. Updated on 13 October 2026 for the authentication branch (password hashes, sessions, role checks) and to record that audit immutability is now enforced by the database (migration 0001).
+**Status: initial baseline for Milestone 2 (October 2026).** Written against the schema in `civic-connect/lib/db/schema.ts`, ADR-04 (stack) and ADR-05 (architectural style) in the PED, and brief section 5.4. Sections marked *planned* describe intended design that is not yet implemented. Updated on 13 October 2026 for the authentication branch (password hashes, sessions, role checks) and to record that audit immutability is now enforced by the database (migration 0001). Updated on 14 October 2026 for the requester slice (request creation with its first audit row in one transaction) and for CR-010 (plain layered monolith: no domain modules or events).
 
 ## 1. Entities, relationships, ownership and lifecycle
 
-| Entity (table) | Purpose | Owning module | Lifecycle |
+| Entity (table) | Purpose | Feature area | Lifecycle |
 |---|---|---|---|
 | `users` | Requesters, staff, managers, admins (`role` enum). Holds personal data (name, email) and the password hash. | Access control (cross-cutting) | Requesters are created by self sign-up (CR-009); staff and manager accounts are seeded; retained while the account is active. |
-| `categories` | Reference list of request types. Each category maps to one department (CR-006). | IssueManagement | Rarely changes; set by the seed script (no administrator screen in M3). |
-| `departments` | Reference list of responsible departments. | RoutingAndAssignment | Rarely changes; set by the seed script (no administrator screen in M3). |
-| `service_requests` | The core aggregate: one citizen request with location (free text), status, department, assignment and resolution notes. | IssueManagement (create, status); RoutingAndAssignment (assignment fields) | submitted -> assigned -> in_progress -> resolved -> closed. Never hard-deleted; `closed` is a state, not a deletion. |
+| `categories` | Reference list of request types. Each category maps to one department (CR-006). | Requests | Rarely changes; set by the seed script (no administrator screen in M3). |
+| `departments` | Reference list of responsible departments. | Requests | Rarely changes; set by the seed script (no administrator screen in M3). |
+| `service_requests` | The core aggregate: one citizen request with location (free text), status, department, assignment and resolution notes. | Requests (create; status and assignment in the staff workflow) | submitted -> assigned -> in_progress -> resolved -> closed. Never hard-deleted; `closed` is a state, not a deletion. |
 | `audit_logs` | Append-only history of actions on a request (who, what, when). | Audit (Decorator, ADR-02) | Written on every significant action; never updated. |
 
 ```mermaid
@@ -23,7 +23,7 @@ erDiagram
     users ||--o{ audit_logs : "performed by"
 ```
 
-Ownership rule (ADR-05): modules communicate through in-process domain events and call the data-access layer; they do not read each other's tables directly.
+Access rule (ADR-05, CR-010): all code reaches the tables through the data-access layer (`lib/db/queries/`), never by building SQL in route handlers or pages. There are no enforced module boundaries; features call each other's services in-process.
 
 ## 2. Why relational PostgreSQL is proportionate
 
@@ -38,7 +38,7 @@ Reasoning chain (Week 2, SO8): evidence -> concern -> decision -> trade-off -> j
 ## 3. Integrity, consistency and concurrency
 
 - **Declared constraints (implemented):** primary keys, NOT NULL on required fields, foreign keys on all relationships, unique `users.email` (the index is case-sensitive, so the application trims and lowercases every email before it is stored or compared, and a duplicate that slips past the check is caught through Postgres error 23505), unique `service_requests.tracking_id`, unique category and department names, `categories.department_id` foreign key to `departments`, enum types for `role` and `status`.
-- **Transaction boundary (planned, ADR-04):** a status update on `service_requests` and the matching `audit_logs` insert run in one interactive transaction using the Neon WebSocket Pool driver. If either fails, both roll back. Domain-event handlers that write to the database take part in the same transaction (ADR-03).
+- **Transaction boundary (ADR-04):** a change to `service_requests` and the matching `audit_logs` insert run in one interactive transaction using the Neon WebSocket Pool driver. If either fails, both roll back. Implemented for request creation (`createRequest` inserts the request and its "submitted" audit row together); planned for status changes and assignment in the Staff slice. The department-routing step is a direct call inside the same transaction (ADR-03 as superseded by CR-010) and is not built yet.
 - **Concurrency (partly implemented):** `service_requests.version` exists for optimistic concurrency. Planned behaviour: update with `WHERE id = ? AND version = ?`, increment `version`, and return a conflict error if no row matched (risk R-10).
 - **Current versus historical state:** `service_requests` holds the current state; `audit_logs` holds the history. Current assignment fields are overwritten on reassignment, and the audit entry preserves what was true at the time.
 - **Validation split (planned):** business rules (for example, resolution notes required to resolve, FR-006) live in the State pattern classes; structural rules live in database constraints.
@@ -83,6 +83,6 @@ Expected volume is low (a request is a single row plus a few audit rows). A sing
 
 ## 8. Decisions and risks recorded
 
-- Related decisions: ADR-03 (events share the transaction), ADR-04 (stack and Pool driver), ADR-05 (modular monolith, single database), ADR-06 (signed-cookie sessions), ED-04, ED-05 and ED-07 in the Decision Log.
+- Related decisions: ADR-03 (routing is a direct call in the creation transaction; Mediator superseded by CR-010), ADR-04 (stack and Pool driver), ADR-05 (plain layered monolith, single database), ADR-06 (signed-cookie sessions), ED-04, ED-05 and ED-07 in the Decision Log; CR-010 in Change Control.
 - Related risks: R-07 (cold start), R-08 (free-tier compute cap), R-09 (connection pool), R-10 (concurrent updates), R-11 (POPIA controls), R-13 (hand-written sign-up and sign-in).
 - RTM: NFR-004 and FR-008 rows reference `lib/db/schema.ts`; their status stays accurate to what is implemented.
