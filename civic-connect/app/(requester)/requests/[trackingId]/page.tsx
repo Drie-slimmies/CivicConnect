@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatDate } from "@/lib/format";
-import { listMyRequests } from "@/lib/mock/data";
+import { getCurrentUser } from "@/lib/auth/guard";
+import { getMyRequest } from "@/lib/db/queries/requests";
 import { StatusTimeline } from "@/components/requests/StatusTimeline";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TicketStub } from "@/components/ui/TicketStub";
@@ -12,7 +13,8 @@ export const metadata: Metadata = { title: "Request details" };
 export default async function RequestPage({ params }: PageProps<"/requests/[trackingId]">) {
   const { trackingId } = await params;
   // Only your own requests are visible. Anything else looks the same as "does not exist".
-  const r = listMyRequests().find((x) => x.trackingId === trackingId);
+  const user = await getCurrentUser();
+  const r = user ? await getMyRequest(user.id, trackingId) : undefined;
   if (!r) notFound();
 
   return (

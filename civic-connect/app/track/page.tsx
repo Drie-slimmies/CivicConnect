@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { TRACKING_ID_PATTERN } from "@/lib/dto";
 import { formatDate } from "@/lib/format";
-import { getPublicRequest } from "@/lib/mock/data";
+import { getPublicRequest } from "@/lib/db/queries/requests";
 import { StatusTimeline } from "@/components/requests/StatusTimeline";
 import { TrackForm } from "@/components/requests/TrackForm";
 import { Notice } from "@/components/ui/Notice";
@@ -15,7 +15,7 @@ export default async function TrackPage({ searchParams }: PageProps<"/track">) {
   const raw = (await searchParams).id;
   const id = (Array.isArray(raw) ? raw[0] : raw)?.trim().toUpperCase() ?? "";
   const badFormat = id !== "" && !TRACKING_ID_PATTERN.test(id);
-  const request = id && !badFormat ? getPublicRequest(id) : undefined;
+  const request = id && !badFormat ? await getPublicRequest(id) : undefined;
 
   return (
     <div className="max-w-3xl">
