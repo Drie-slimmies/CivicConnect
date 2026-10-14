@@ -29,7 +29,6 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 150 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
-  // scrypt hash, never the password itself (CR-009, NFR-004).
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("requester"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -47,8 +46,7 @@ export const departments = pgTable("departments", {
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
-  // Fixed category-to-department map used by the routing handler (CR-006).
-  departmentId: integer("department_id").notNull().references(() => departments.id),
+  departmentId: integer("department_id").notNull(),
 }, (table) => ({
   nameUnique: uniqueIndex("categories_name_unique").on(table.name),
 }));
@@ -56,22 +54,16 @@ export const categories = pgTable("categories", {
 export const serviceRequests = pgTable("service_requests", {
   id: serial("id").primaryKey(),
   trackingId: varchar("tracking_id", { length: 20 }).notNull(),
-
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description").notNull(),
   location: text("location").notNull(),
-
-  categoryId: integer("category_id").notNull().references(() => categories.id),
-
+  categoryId: integer("category_id").notNull(),
   status: requestStatusEnum("status").notNull().default("submitted"),
   resolutionNotes: text("resolution_notes"),
-
-  requesterId: integer("requester_id").notNull().references(() => users.id),
-  assignedStaffId: integer("assigned_staff_id").references(() => users.id),
-  assignedDepartmentId: integer("assigned_department_id").references(() => departments.id),
-
+  requesterId: integer("requester_id").notNull(),
+  assignedStaffId: integer("assigned_staff_id"),
+  assignedDepartmentId: integer("assigned_department_id"),
   version: integer("version").notNull().default(1),
-
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => ({
@@ -80,13 +72,16 @@ export const serviceRequests = pgTable("service_requests", {
 
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
-  serviceRequestId: integer("service_request_id").notNull().references(() => serviceRequests.id),
-  userId: integer("user_id").notNull().references(() => users.id),
+  serviceRequestId: integer("service_request_id").notNull(),
+  userId: integer("user_id").notNull(),
   action: varchar("action", { length: 100 }).notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export type RequestStatus = typeof serviceRequests.$inferSelect.status;
+
+// Relations definitions
 export const usersRelations = relations(users, ({ many }) => ({
   requestsSubmitted: many(serviceRequests, { relationName: "requester" }),
   requestsAssigned: many(serviceRequests, { relationName: "assignedStaff" }),
