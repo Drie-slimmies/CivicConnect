@@ -1,11 +1,11 @@
 # Project Engineering Document (PED)
 
 **Project Name:** CivicConnect Community Service Request Management Platform
-**Document Identifier:** Project Engineering Document (PED) v2.0
-**Target Baseline:** Milestone 2 Baseline Gate (Architecture, Technology & Initial Design Baseline)
+**Document Identifier:** Project Engineering Document (PED) v3.1 (M3 evidence index, in progress)
+**Target Baseline:** Milestone 3 (Controlled Construction, Integration, Quality & Release Readiness); the Milestone 2 baseline gate is recorded below
 **Team Identifier:** Group M (Drie-slimmies)
 
-> This is the living engineering document for CivicConnect. It started as a Word document for Milestone 1; per lecturer feedback after the M1 presentation, it now lives here as version-controlled Markdown. PED v2.0 extends the same document, it does not replace or silently overwrite the M1 baseline below; every change made to baselined M1 content is tracked in the [Change Control log](../change/change-control.md).
+> This is the living engineering document for CivicConnect. It started as a Word document for Milestone 1; per lecturer feedback after the M1 presentation, it now lives here as version-controlled Markdown. Each later version extends the same document, it does not replace or silently overwrite the M1 baseline below; every change made to baselined M1 content is tracked in the [Change Control log](../change/change-control.md).
 
 ## Contents
 
@@ -17,8 +17,8 @@
 - [RTM v2.0](../requirements/rtm.md)
 - [Risk Register](../risk/risk-register.md) (R-01 to R-13)
 - [Engineering Decision Log](../decisions/) — ADR-0001 to ADR-0009
-- [Change Control](../change/change-control.md) — CR-001 to CR-009
-- [Architecture Overview](../architecture/architecture.md)
+- [Change Control](../change/change-control.md) — CR-001 to CR-010
+- [Architecture Overview](../architecture/architecture.md) — plain layered monolith (ADR-05, CR-010)
 - [ASRs and Quality Drivers](../quality/quality-drivers.md)
 - [Deployment Direction and Compatibility](../deployment/deployment.md)
 - [Data and Persistence Baseline](../architecture/data-persistence-baseline.md) — deferred past the M2 deadline, since written and updated for authentication on 13 October 2026
@@ -84,4 +84,5 @@ First slice of the M3 integrated increment. Evidence index; the detail stays in 
 
 - **v1.0** (9 September 2026) — Milestone 1 baseline, originally submitted as a Word document, migrated into this repository as Markdown.
 - **v2.0** (30 September 2026) — Architecture, technology-stack and initial design baseline added (ADR-0004 to ADR-0007); RTM, Risk Register and Decision Log extended; Change Control log introduced for CR-001 to CR-005; GitHub governance updated to match the live repository. Data/Persistence Baseline deferred, logged as an open item.
-- **v3.0** (in progress, October 2026) — this document continues as the M3 evidence index. The authentication slice is the first entry (see M3 Progress above); the version is finalised at release.
+- **v3.0** (13 October 2026) — M3 evidence index begun: CR-006 to CR-009 applied, requester sign-up and sign-in with signed-cookie sessions (ADR-06, ED-07), Next.js upgrade and audit gate (ED-06, R-12), new risk R-13, Technical Debt Register and AI Usage Register entries, RTM test evidence for the authentication branch.
+- **v3.1** (14 October 2026) — architectural style changed from a modular monolith to a plain layered monolith (CR-010): ADR-05 revised, ADR-03 superseded, Figure 1, traceability, NFR table and ED-04/ED-05 amended; RTM updated for the requester slice (FR-001 to FR-003); CR-011 to CR-016 logged for earlier unlogged changes. The final version number is set at release.

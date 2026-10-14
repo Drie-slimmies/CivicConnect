@@ -40,8 +40,8 @@ implemented prematurely.
 
 - Material risks: Neon free-tier scale-to-zero can introduce a
   cold-start latency spike on the first request after idle, which risks
-  NFR-001 (\<2s) - already logged as risk R-09; the 100 CU-hour/month
-  free-tier cap needs monitoring as usage grows.
+  NFR-001 (\<2s) - already logged as risk R-07; the 100 CU-hour/month
+  free-tier cap (R-08) needs monitoring as usage grows.
 
 - Deliberately deferred: the specific hosting provider/account, a
   production CI/CD deploy pipeline, and a custom domain/TLS setup are
