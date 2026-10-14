@@ -115,7 +115,7 @@ secure</td>
 <td>Changed architectural style to a plain layered monolith (M3, approved)</td>
 <td>ADR-05 decided a modular monolith with domain modules communicating only through in-process events; ADR-03 specified a Mediator and RouteToDepartmentHandler</td>
 <td>Plain layered monolith: one deployable, one database, code organised by layer and feature area. No domain modules, event bus or handler; category-to-department routing is a direct call in the request service within the same transaction</td>
-<td>Team decision for a 3-person team with four fixed milestones: the event pattern and module boundaries were not built and would not be finished by M3/M4; the simpler design keeps the same atomicity (FR-006/FR-008) and performance (NFR-001) goals</td>
+<td>Team decision for a 3-person team with four fixed milestones: the event pattern and module boundaries were not built and would not be finished by M3/M4; the modular and plain options were compared in ADR-05 and give the same atomicity (FR-006/FR-008) and performance (NFR-001), so the simpler design wins on build cost; the price is that feature boundaries are no longer enforced (review and the layer structure are the controls)</td>
 <td>ADR-03 superseded; ADR-05, Figure 1, the architecture section, traceability, NFR table and ED-04/ED-05 amended. No change to requirements or acceptance criteria. Repo cleanup: the empty event stubs (lib/events/eventEmitter.ts and lib/events/handlers/assignStaff.ts) are removed; the empty State and Decorator stubs stay, because ADR-01 and ADR-02 still apply and are built in the Staff slice</td>
 </tr>
 </tbody>

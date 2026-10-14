@@ -35,9 +35,21 @@ Architecture style, deployment, and infrastructure are judged separately. The st
 | Option | What it would give us | What it would cost us | Verdict |
 | --- | --- | --- | --- |
 | **Plain layered monolith** (one deployable, one database) | Single ACID transaction for FR-006 / FR-008. One pipeline and deploy for a 3-person team. No network latency between layers or features (NFR-001). Layer and feature structure kept in code. | No independent scaling or deployment. No enforced boundaries between features. One database is a single point of failure. | **Chosen** |
+| **Modular monolith** (previous choice, superseded by CR-010: one deployable, enforced domain modules talking through in-process events) | Single ACID transaction for FR-006 / FR-008. No network latency. Feature boundaries enforced by structure, so coupling is controlled by design. Routing through an event keeps intake and routing apart. | Event plumbing, module wiring and rollback handling for event handlers, plus extra tests, for a team of 3 and four fixed milestones. The pattern was documented but never built, and would not be finished by M3/M4. | Rejected by CR-010: same atomicity and latency as the chosen option for a higher build cost |
 | **SOA / microservices** (separate Issue, Routing, and Audit services) | Independent scaling and deployment. Fault isolation. Team autonomy. | FR-006 / FR-008 become a distributed transaction or saga. Network hops threaten NFR-001. Several pipelines, monitors, and attack surfaces (NFR-004) beyond what 3 people can run. No scaling need evidenced yet. | Rejected: benefits not evidenced |
 | **Event-driven with an external broker** | Asynchronous decoupling, retries, and buffering for assignment and notifications. | A broker to run and pay for (Cost/Resources). Eventual consistency against FR-006 / FR-008. Harder debugging. A2 rejected a broker for the same request-to-routing interaction (ADR-03). A direct in-process call needs no broker and is not EDA. | Rejected for M2 |
 | **Function-per-feature serverless** (each feature its own function and data path) | Per-request scaling and pay-per-use cost. | Cold starts multiply the NFR-001 risk (R-07). More connection pools against Neon multiply R-09. Domain rules are harder to keep consistent. | Rejected as a style. Serverless is kept as a deployment target for the single deployable, not as the style. |
+
+## Comparison with the Modular Monolith (CR-010)
+
+The earlier version of this ADR chose a modular monolith. Both options keep one deployable, one database and one ACID transaction, so they score the same on the drivers that matter most (FR-006 / FR-008 atomicity, NFR-001 latency, NFR-002 availability, NFR-004 one trust boundary). They differ in four ways:
+
+- **Boundaries:** the modular monolith enforces them (modules, events, no cross-module table access); the plain monolith relies on the layer structure and code review.
+- **Routing:** the modular monolith routes through an event, mediator and handler; the plain monolith uses one direct call inside the creation transaction, which is simpler to read, test and debug.
+- **Cost:** the modular monolith needs event plumbing, module wiring and extra tests that were never built; the plain monolith needs none of that.
+- **Evolution:** the modular monolith is easier to split into services later; the plain monolith would need its routing logic extracted first (see When to Reconsider).
+
+**Judgement:** the extra enforcement buys little for a single team of three working on one slice at a time, and the effort did not fit the schedule. The plain monolith meets the same drivers at a lower cost. The price is that coupling can grow unchecked, so code review and the layer structure are the controls, and the reconsider triggers below apply.
 
 ## Decision
 
