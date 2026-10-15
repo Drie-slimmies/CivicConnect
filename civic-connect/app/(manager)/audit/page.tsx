@@ -2,14 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ROLE_LABEL } from "@/lib/dto";
 import { formatDateTime } from "@/lib/format";
-import { AUDIT } from "@/lib/mock/data";
+import { authorize, getCurrentUser } from "@/lib/auth/guard";
+import { listAudit } from "@/lib/db/queries/audit";
 import { RoleGate } from "@/components/layout/RoleGate";
 import { Notice } from "@/components/ui/Notice";
 import { PageTitle } from "@/components/ui/PageTitle";
 
 export const metadata: Metadata = { title: "Audit log" };
 
-export default function AuditPage() {
+export default async function AuditPage() {
+  const allowed = authorize(await getCurrentUser(), ["manager", "admin"]).ok;
+  if (!allowed) return <RoleGate allow={["manager", "admin"]}>{null}</RoleGate>;
+  const entries = await listAudit();
+
   return (
     <RoleGate allow={["manager", "admin"]}>
       <PageTitle title="Audit log">Every assignment and status change, newest first.</PageTitle>
@@ -19,7 +24,7 @@ export default function AuditPage() {
         </Notice>
       </div>
       <ol className="flex flex-col gap-3">
-        {AUDIT.map((a) => (
+        {entries.map((a) => (
           <li key={a.id} className="grid gap-1 rounded-card border border-line bg-surface p-5 sm:grid-cols-[11rem_1fr] sm:gap-6">
             <time dateTime={a.at} className="text-sm text-muted">
               {formatDateTime(a.at)}
