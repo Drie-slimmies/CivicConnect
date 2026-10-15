@@ -46,7 +46,7 @@ export const departments = pgTable("departments", {
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
-  departmentId: integer("department_id").notNull(),
+  departmentId: integer("department_id").notNull().references(() => departments.id),
 }, (table) => ({
   nameUnique: uniqueIndex("categories_name_unique").on(table.name),
 }));
@@ -57,12 +57,12 @@ export const serviceRequests = pgTable("service_requests", {
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description").notNull(),
   location: text("location").notNull(),
-  categoryId: integer("category_id").notNull(),
+  categoryId: integer("category_id").notNull().references(() => categories.id),
   status: requestStatusEnum("status").notNull().default("submitted"),
   resolutionNotes: text("resolution_notes"),
-  requesterId: integer("requester_id").notNull(),
-  assignedStaffId: integer("assigned_staff_id"),
-  assignedDepartmentId: integer("assigned_department_id"),
+  requesterId: integer("requester_id").notNull().references(() => users.id),
+  assignedStaffId: integer("assigned_staff_id").references(() => users.id),
+  assignedDepartmentId: integer("assigned_department_id").references(() => departments.id),
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -72,8 +72,8 @@ export const serviceRequests = pgTable("service_requests", {
 
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
-  serviceRequestId: integer("service_request_id").notNull(),
-  userId: integer("user_id").notNull(),
+  serviceRequestId: integer("service_request_id").notNull().references(() => serviceRequests.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   action: varchar("action", { length: 100 }).notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

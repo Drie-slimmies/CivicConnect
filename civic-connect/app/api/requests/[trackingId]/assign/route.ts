@@ -1,26 +1,11 @@
-import { NextResponse } from "next/server";
 import { assignRequest } from "@/lib/requests/service";
-import { getCurrentUser } from "@/lib/auth/guard";
+import { fail, handleRequestAction } from "@/lib/requests/actionRoute";
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ trackingId: string }> }
-) {
-  try {
-    const user = await getCurrentUser();
-    if (!user || !["staff", "manager", "admin"].includes(user.role)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
+export async function POST(request: Request, { params }: { params: Promise<{ trackingId: string }> }) {
+  const { trackingId } = await params;
 
-    const { trackingId } = await params;
-    const body = await req.json();
-    const { assigneeId, version } = body;
-
-    const updated = await assignRequest(trackingId, assigneeId, user.id, version);
-    return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    if (error.message === "NOT_FOUND") return NextResponse.json({ error: "Request not found" }, { status: 404 });
-    if (error.message === "VERSION_CONFLICT") return NextResponse.json({ error: "Stale version" }, { status: 409 });
-    return NextResponse.json({ error: error.message || "Failed to assign" }, { status: 400 });
-  }
+  return handleRequestAction(request, trackingId, async (body, user) => {
+    if (!Number.isInteger(body.assigneeId)) return fail("Choose who to assign this request to.", 400);
+    await assignRequest(trackingId, body.assigneeId as number, user.id, body.version as number);
+  });
 }

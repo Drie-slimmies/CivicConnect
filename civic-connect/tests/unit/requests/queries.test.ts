@@ -17,6 +17,8 @@ describe("request queries", () => {
       title: "Pothole",
       description: "Deep pothole",
       location: "Protea Road",
+      categoryName: "Roads and potholes",
+      assignedStaffName: "Thandi Mokoena",
       categoryId: 2,
       status: "assigned" as const,
       resolutionNotes: null,

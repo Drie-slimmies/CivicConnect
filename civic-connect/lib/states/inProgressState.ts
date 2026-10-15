@@ -1,17 +1,15 @@
-import { RequestState } from "./types";
-import { RequestStatus } from "@/lib/db/schema";
+import type { RequestState } from "./types";
 
 export const inProgressState: RequestState = {
     status: "in_progress",
     canAssign: true,
     nextStates: ["resolved"],
-    validateTransition(action: string, notes?: string | null){
-        if (action === "resolved"){
+    validateTransition(next, notes){
+        if (next === "resolved") return { valid: false, error: "A request in progress can only move to Resolvedl."};
             if(!notes || notes.trim().length === 0){
-                return { valid: false, error: "Resolution notes are required to resolve a request."};
-            }
+               return { valid: false, error: "Resolution notes are required to resolve a request."};
+            } 
             return { valid: true };
-        }
-        return { valid: false, error: "Invalid transition from in_progress state."};
-    },
-};
+        },
+        
+    };

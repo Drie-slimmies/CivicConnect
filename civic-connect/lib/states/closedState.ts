@@ -1,5 +1,4 @@
-import { RequestState } from "./types";
-import { requestStatus } from "@/lib/db/schema";
+import type { RequestState } from "./types";
 
 export const closedState: RequestState = {
     status:"closed",

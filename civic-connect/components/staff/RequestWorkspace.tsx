@@ -10,51 +10,65 @@ import { Notice } from "@/components/ui/Notice";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { TicketStub } from "@/components/ui/TicketStub";
 
-const ME = "Thandi Mokoena"; // demo signed-in staff member
-const STAFF = ["Thandi Mokoena", "Sipho Dlamini", "Naledi Botha"];
+type Person = { id: number; name: string };
 
-export function RequestWorkspace({ initial }: { initial: RequestDetail }) {
+export function RequestWorkspace({ initial, staff, me }: { initial: RequestDetail; staff: Person[]; me: Person }) {
   const [r, setR] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState("");
   const [notesError, setNotesError] = useState("");
   const [transferTo, setTransferTo] = useState("");
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  // Prototype: replace with PATCH calls that send `version` and handle a 409 conflict.
-  function apply(change: Partial<RequestDetail>, done: string, status?: Status) {
+  // Sends one change to the API with the version we last saw. The server saves the
+  // change and its audit row in one transaction and answers with the updated request.
+  async function send(path: "assign" | "status", body: Record<string, unknown>, done: string) {
     setBusy(true);
     setMessage("");
-    setTimeout(() => {
-      const at = new Date().toISOString();
-      setR((c) => ({
-        ...c,
-        ...change,
-        updatedAt: at,
-        version: c.version + 1,
-        history: status ? [...c.history, { status, at }] : c.history,
-      }));
+    setError("");
+    try {
+      const res = await fetch(`/api/requests/${r.trackingId}/${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...body, version: r.version }),
+      });
+      const data: { request?: RequestDetail; error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok || !data.request) {
+        setError(
+          res.status === 409
+            ? "Someone else changed this request while you had it open. Reload the page to see the latest version."
+            : (data.error ?? "Something went wrong. Please try again."),
+        );
+        return false;
+      }
+      setR(data.request);
       setMessage(done);
+      return true;
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+      return false;
+    } finally {
       setBusy(false);
-    }, 600);
+    }
   }
 
-  function assign(name: string) {
-    apply({ assignedTo: name, status: r.status === "submitted" ? "assigned" : r.status }, `Assigned to ${name}. This is recorded in the audit log.`, r.status === "submitted" ? "assigned" : undefined);
+  function assign(person: Person) {
+    void send("assign", { assigneeId: person.id }, `Assigned to ${person.name}. This is recorded in the audit log.`);
   }
 
-  function advance(next: Status) {
+  async function advance(next: Status) {
     if (next === "resolved" && !notes.trim()) {
       setNotesError("Add resolution notes before marking this request as resolved. They explain what was done.");
       return;
     }
     setNotesError("");
-    apply(
-      { status: next, resolutionNotes: next === "resolved" ? notes.trim() : r.resolutionNotes },
+    const ok = await send(
+      "status",
+      { status: next, notes: notes.trim() || undefined },
       `Status changed to ${STATUS_LABEL[next]}. This is recorded in the audit log.`,
-      next,
     );
-    setNotes("");
+    if (ok) setNotes("");
   }
 
   const next = NEXT_STATUS[r.status];
@@ -89,11 +103,12 @@ export function RequestWorkspace({ initial }: { initial: RequestDetail }) {
               Update this request
             </h2>
             {message && <Notice kind="success" title={message} />}
+            {error && <Notice kind="error" title={error} />}
 
             {r.assignedTo === null ? (
               <div className="flex flex-col items-start gap-3">
                 <p className="text-muted">Assign this request to move it forward.</p>
-                <Button onClick={() => assign(ME)} disabled={busy}>
+                <Button onClick={() => assign(me)} disabled={busy}>
                   {busy ? "Assigning…" : "Assign to me"}
                 </Button>
               </div>
@@ -102,18 +117,29 @@ export function RequestWorkspace({ initial }: { initial: RequestDetail }) {
                 <div className="w-full sm:max-w-xs">
                   <SelectField label="Transfer to" value={transferTo} onChange={(e) => setTransferTo(e.target.value)}>
                     <option value="">Choose a team member</option>
-                    {STAFF.filter((s) => s !== r.assignedTo).map((s) => (
-                      <option key={s}>{s}</option>
-                    ))}
+                    {staff
+                      .filter((s) => s.name !== r.assignedTo)
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
                   </SelectField>
                 </div>
-                <Button variant="ghost" onClick={() => assign(transferTo)} disabled={busy || !transferTo}>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    const person = staff.find((s) => String(s.id) === transferTo);
+                    if (person) assign(person);
+                  }}
+                  disabled={busy || !transferTo}
+                >
                   Transfer
                 </Button>
               </div>
             )}
 
-            {r.assignedTo !== null && next ? (
+            {r.assignedTo !== null && next && next !== "assigned" ? (
               <div className="flex flex-col gap-4 border-t border-line pt-5">
                 <TextArea
                   label={next === "resolved" ? "Resolution notes" : "Notes"}

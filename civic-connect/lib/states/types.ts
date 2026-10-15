@@ -1,8 +1,10 @@
 import { RequestStatus } from "@/lib/db/schema";
 
+export type TransitionResult = { valid: true } | {valid: false; error: string};
+
 export interface RequestState {
     status: RequestStatus;
     canAssign: boolean;
     nextStates: RequestStatus[];
-    validateTransition(action: string, notes?: string | null): {valid: boolean; error?: string};
+    validateTransition(next: RequestStatus, notes?: string | null): TransitionResult;
 }

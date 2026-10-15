@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { and, eq, asc, desc } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { auditLogs, categories, serviceRequests, users } from "@/lib/db/schema";
 import { STATUSES, type Category, type PublicRequest, type RequestDetail, type Status } from "@/lib/dto";
@@ -38,7 +38,7 @@ export async function createRequest(requesterId: number, fields: RequestFields):
 }
 
 // Helper to fetch requests using standard joins instead of db.query
-async function fetchRequestsWithRelations(whereCondition?: any) {
+async function fetchRequestsWithRelations(whereCondition?: SQL) {
   const requests = await db
     .select({
       id: serviceRequests.id,
@@ -72,6 +72,7 @@ async function fetchRequestsWithRelations(whereCondition?: any) {
       createdAt: auditLogs.createdAt,
     })
     .from(auditLogs)
+    .where(inArray(auditLogs.serviceRequestId, requestIds))
     .orderBy(asc(auditLogs.createdAt));
 
   const logsMap = new Map<number, { action: string; createdAt: Date }[]>();

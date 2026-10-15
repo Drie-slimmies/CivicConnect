@@ -1,28 +1,15 @@
-import { NextResponse } from "next/server";
+import { STATUSES, type Status } from "@/lib/dto";
 import { advanceRequest } from "@/lib/requests/service";
-import { getCurrentUser } from "@/lib/auth/guard";
-import { SuccessPopup } from "@/components/auth/SuccessPopup";
-import next from "next";
+import { fail, handleRequestAction } from "@/lib/requests/actionRoute";
 
-export async function POST(
-    req: Request,
-    { params }: { params: Promise<{ trackingId: string}>}
-){
-    try {
-        const user = await getCurrentUser();
-        if (!user || !["staff", "manager", "admin"]. includes(user.role)) {
-            return NextResponse.json({error: "Unauthorized"}, { status: 403});
-        }
+const isStatus = (value: unknown): value is Status => STATUSES.includes(value as Status);
 
-        const { trackingId } = await params;
-        const body = await req.json();
-        const { status, notes, version } = body;
+export async function POST(request: Request, { params }: { params: Promise<{ trackingId: string }> }) {
+  const { trackingId } = await params;
 
-        const updated = await advanceRequest(trackingId, status, notes, user.id, version);
-        return NextResponse.json({ success: true, data: updated })
-    } catch (error: any){
-        if (error.message === "NOT_FOUND") return NextResponse.json({ error: "Request not found"}, { status: 404});
-        if ( error.message === "VERSION_CONFLICT") return NextResponse.json({ error: "Stale version"}, { status: 409});
-        return NextResponse.json({ error: error.message || "Failed to update status"}, {status: 400});
-    }
+  return handleRequestAction(request, trackingId, async (body, user) => {
+    if (!isStatus(body.status)) return fail("Choose a valid status.", 400);
+    if (body.notes !== undefined && typeof body.notes !== "string") return fail("Notes must be text.", 400);
+    await advanceRequest(trackingId, body.status, body.notes, user.id, body.version as number);
+  });
 }

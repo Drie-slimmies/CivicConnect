@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 import type { RequestDetail } from "@/lib/dto";
 import { CATEGORIES, STATUSES, STATUS_LABEL } from "@/lib/dto";
 import { formatDate } from "@/lib/format";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { SelectField } from "@/components/ui/Fields";
+import { SelectField, TextField } from "@/components/ui/Fields";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
 const SORTS = {
@@ -14,23 +13,35 @@ const SORTS = {
 } as const;
 type Sort = keyof typeof SORTS;
 
+const [search, setSearch] = useState("");
+
 export function QueueView({ requests }: { requests: RequestDetail[] }) {
   const [status, setStatus] = useState("open");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<Sort>("oldest");
 
   const shown = useMemo(() => {
+  
+    const term = search.trim().toLowerCase();
     const list = requests.filter(
       (r) =>
+        (term === "" || [r.trackingId, r.title, r.location].some((field) => field.toLowerCase().includes(term))) &&
         (status === "all" || (status === "open" ? r.status !== "resolved" && r.status !== "closed" : r.status === status)) &&
         (category === "all" || r.category === category),
     );
-    return list.sort((a, b) => (sort === "newest" ? b.createdAt.localeCompare(a.createdAt) : a.createdAt.localeCompare(b.createdAt)));
-  }, [requests, status, category, sort]);
+    
+  }, [requests, status, category, sort, search]);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 rounded-card border border-line bg-surface p-5 sm:grid-cols-3">
+      <div className="grid gap-4 rounded-card border border-line bg-surface p-5 sm:grid-cols-2 lg:grid-cols-4">
+        <TextField
+          label="Search"
+          type="search"
+          placeholder="Tracking ID, title or location"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <SelectField label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="open">Open requests</option>
           <option value="all">All requests</option>
