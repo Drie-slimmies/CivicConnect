@@ -19,6 +19,7 @@ the team can act on it.
 | R-11 | POPIA encryption / least-privilege DB role is misconfigured                                                 | New NFR-004 control (CR-005) not yet implemented or reviewed                                   | Low         | High   | Code review and an NFR-004 acceptance test before any real personal data is used                                          | Restrict or rotate credentials immediately if exposure is suspected                      |
 | R-12 | Dev-tooling vulnerabilities (braces via eslint-config-next, esbuild via drizzle-kit) have no upstream patch | Transitive dependencies of lint and migration tooling; they are not shipped in the application | High        | Low    | CI gates production dependencies only (npm audit --omit=dev --audit-level=high); re-run plain npm audit at each milestone | Upgrade when upstream patches appear; pin or replace the tool if a patch breaks it       |
 | R-13 | Hand-written sign-up and sign-in may contain a security flaw or attract junk accounts | Passwords are hashed with scrypt and sessions are signed cookies built by the team, and sign-up is open to anyone (CR-009) | Medium | High | Use standard primitives only (scrypt, signed HTTP-only cookie) in one module; the server sets the role; reject duplicate emails and short passwords; negative tests for wrong password, no session, wrong role and role injection; review in a pull request against NFR-004 | Rotate the signing secret to invalidate all sessions; disable sign-up and fall back to seeded accounts; switch to an established authentication library if a flaw is found |
+| R-14 | Release-quality evidence (database check, end-to-end journeys, performance) is run by hand and may be skipped, stale or not tied to the release commit | These checks need the real database, a browser or a running build, so they sit outside the CI gate (quality strategy) | Medium | Medium | Save every run under docs/quality/evidence/ with the date, commit SHA and environment; run them before the release candidate is tagged; the Release Evidence Summary has a row for each | State plainly in the Release Evidence Summary which risks were not verified end to end and why |
 
 ## Status notes (13 October 2026, authentication branch)
 
@@ -33,3 +34,10 @@ the team can act on it.
 - **R-05:** probability reduced. Every request-data route (requester, staff and manager) now calls `requireRole()` and has a test for 401 and 403. Keep it open until the NFR-004 review is done and real personal data is not used before then.
 - **R-01:** reduced further. 90 automated tests in 14 files run with `npm test` and in CI.
 - New debt for the staff slice: TD-10 to TD-14 in the [technical debt register](../quality/technical-debt-register.md).
+
+## Status notes (16 October 2026, quality strategy)
+
+- **Link to the quality risks:** the five quality risks in the [quality strategy](../quality/quality-strategy.md) map to this register: Q1 to R-05 and R-13, Q2 to R-05, Q3 to R-04, Q5 to R-10. Q4 (audit trail) has no separate entry; its residual gap, that a database owner could drop the immutability trigger, is recorded in the [data and persistence baseline](../architecture/data-persistence-baseline.md).
+- **R-10:** probability stays Low. The strategy rates the quality risk Low to medium because the staff share one queue; revisit after a two-session check against Neon.
+- **R-01:** reduced further. The CI gate now has written rules and thresholds, and the 90 tests run in it.
+- **R-14:** new. The hand-run evidence (A4, E1, E2, P1) is the only evidence against the real database and a browser, so skipping it would leave Q1 and Q4 proven against a mock only.

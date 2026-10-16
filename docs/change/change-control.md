@@ -1,6 +1,6 @@
 # Change Control
 
-> Controlled changes applied to the baselined M1 requirements during M2 (CR-001 to CR-005) and to the M2 baseline during M3 (CR-006 to CR-014), per PED v2.0's continuity rule: nothing is silently overwritten, every change is logged here.
+> Controlled changes applied to the baselined M1 requirements during M2 (CR-001 to CR-005) and to the M2 baseline during M3 (CR-006 to CR-015), per PED v2.0's continuity rule: nothing is silently overwritten, every change is logged here.
 
 
 <table>
@@ -149,6 +149,14 @@ secure</td>
 <td>logAuditAction(tx, ...) in lib/decorators/auditDecorator.ts is called by the request service inside its own transaction, so the status change and its audit row commit or roll back together</td>
 <td>A wrapper that runs around the service cannot share the service's transaction, which FR-006, FR-008 and ADR-04 require; passing the transaction in keeps audit writing in one file and out of the business rules in lib/states</td>
 <td>ADR-02 gets an implementation note; the FR-008 row and the architecture text updated; every service action must call it, which the service tests check by asserting the audit row</td>
+</tr>
+<tr class="odd">
+<td>CR-015</td>
+<td>Quality strategy and a single CI quality gate defined (M3)</td>
+<td>CONTRIBUTING.md described the CI workflow as lint, build, typecheck and a production-dependency audit (the test step was missing from the text); no document said which quality risks the tests protect or what makes a CI run pass or fail; the RTM "How we will test it" entries named methods only</td>
+<td>docs/quality/quality-strategy.md added: five quality risks (Q1 to Q5), the test cases that verify them, one CI quality gate (the job "checks") with thresholds fixed in advance, and release-quality evidence (a database check, two end-to-end journeys, one performance scenario) kept outside the gate. CONTRIBUTING corrected to include the test step and to point to the strategy</td>
+<td>M3 asks for risk-based verification and at least one CI check that blocks progression with thresholds defined in advance; a gate whose threshold is decided after seeing the result is not a gate</td>
+<td>PED contents and progress section, RTM (quality risk coverage section and the FR-008 test method), risk register (R-14 and a status note), technical debt register (TD-15 and repayment notes), quality drivers and both READMEs updated. No change to requirements or acceptance criteria. The gate additions in ci.yml and the new tests are planned as separate pull requests</td>
 </tr>
 </tbody>
 </table>

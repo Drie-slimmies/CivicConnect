@@ -63,7 +63,7 @@ Only variable names and placeholders belong in `.env.example`. Real values stay 
 | `npm run build`                           | Production build                                                                               |
 | `npm audit --omit=dev --audit-level=high` | Dependency check used as the CI gate                                                           |
 
-The same checks run in GitHub Actions on every pull request and push to `main` (see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)).
+The same checks run in GitHub Actions on every pull request and push to `main` (see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)). Their pass/fail rules are the quality gate defined in the [quality strategy](../docs/quality/quality-strategy.md).
 
 ## Structure
 
@@ -97,4 +97,4 @@ Sign-up always creates a requester; staff and manager accounts come from the see
 
 ## Documentation links
 
-[PED](../docs/PED/PED.md) | [RTM](../docs/requirements/rtm.md) | [Risk Register](../docs/risk/risk-register.md) | [Decisions (ADRs)](../docs/decisions/) | [Data and persistence baseline](../docs/architecture/data-persistence-baseline.md) | [Architecture](../docs/architecture/architecture.md) | [ADR-06 sessions](../docs/decisions/0009-signed-cookie-sessions-with-jose.md) | [Technical debt register](../docs/quality/technical-debt-register.md)
+[PED](../docs/PED/PED.md) | [RTM](../docs/requirements/rtm.md) | [Risk Register](../docs/risk/risk-register.md) | [Decisions (ADRs)](../docs/decisions/) | [Data and persistence baseline](../docs/architecture/data-persistence-baseline.md) | [Architecture](../docs/architecture/architecture.md) | [ADR-06 sessions](../docs/decisions/0009-signed-cookie-sessions-with-jose.md) | [Technical debt register](../docs/quality/technical-debt-register.md) | [Quality strategy](../docs/quality/quality-strategy.md)
