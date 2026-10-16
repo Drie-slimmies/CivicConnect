@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { RequestDetail, Status } from "@/lib/dto";
+import type { RequestDetail, Role, Status } from "@/lib/dto";
 import { NEXT_STATUS, STATUS_LABEL } from "@/lib/dto";
 import { formatDate } from "@/lib/format";
 import { StatusTimeline } from "@/components/requests/StatusTimeline";
@@ -12,7 +12,17 @@ import { TicketStub } from "@/components/ui/TicketStub";
 
 type Person = { id: number; name: string };
 
-export function RequestWorkspace({ initial, staff, me }: { initial: RequestDetail; staff: Person[]; me: Person }) {
+export function RequestWorkspace({
+  initial,
+  staff,
+  me,
+  role,
+}: {
+  initial: RequestDetail;
+  staff: Person[];
+  me: Person | null;
+  role: Role;
+}) {
   const [r, setR] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState("");
@@ -21,9 +31,7 @@ export function RequestWorkspace({ initial, staff, me }: { initial: RequestDetai
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Sends one change to the API with the version we last saw. The server saves the
-  // change and its audit row in one transaction and answers with the updated request.
-  async function send(path: "assign" | "status", body: Record<string, unknown>, done: string) {
+  async function send(path: "assign" | "status" | "unassign", body: Record<string, unknown>, done: string) {
     setBusy(true);
     setMessage("");
     setError("");
@@ -57,6 +65,10 @@ export function RequestWorkspace({ initial, staff, me }: { initial: RequestDetai
     void send("assign", { assigneeId: person.id }, `Assigned to ${person.name}. This is recorded in the audit log.`);
   }
 
+  function unassign() {
+    void send("unassign", {}, "Request unassigned. This is recorded in the audit log.");
+  }
+
   async function advance(next: Status) {
     if (next === "resolved" && !notes.trim()) {
       setNotesError("Add resolution notes before marking this request as resolved. They explain what was done.");
@@ -72,6 +84,10 @@ export function RequestWorkspace({ initial, staff, me }: { initial: RequestDetai
   }
 
   const next = NEXT_STATUS[r.status];
+  const canUnassign =
+    r.assignedTo !== null &&
+    (r.status === "assigned" || r.status === "in_progress") &&
+    (role !== "staff" || r.assignedTo === me?.name);
 
   return (
     <div className="flex flex-col gap-8">
@@ -105,7 +121,7 @@ export function RequestWorkspace({ initial, staff, me }: { initial: RequestDetai
             {message && <Notice kind="success" title={message} />}
             {error && <Notice kind="error" title={error} />}
 
-            {r.assignedTo === null ? (
+            {r.assignedTo === null && me ? (
               <div className="flex flex-col items-start gap-3">
                 <p className="text-muted">Assign this request to move it forward.</p>
                 <Button onClick={() => assign(me)} disabled={busy}>
@@ -115,7 +131,7 @@ export function RequestWorkspace({ initial, staff, me }: { initial: RequestDetai
             ) : (
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end">
                 <div className="w-full sm:max-w-xs">
-                  <SelectField label="Transfer to" value={transferTo} onChange={(e) => setTransferTo(e.target.value)}>
+                  <SelectField label={r.assignedTo === null ? "Assign to" : "Transfer to"} value={transferTo} onChange={(e) => setTransferTo(e.target.value)}>
                     <option value="">Choose a team member</option>
                     {staff
                       .filter((s) => s.name !== r.assignedTo)
@@ -134,8 +150,13 @@ export function RequestWorkspace({ initial, staff, me }: { initial: RequestDetai
                   }}
                   disabled={busy || !transferTo}
                 >
-                  Transfer
+                  {r.assignedTo === null ? "Assign" : "Transfer"}
                 </Button>
+                {canUnassign && (
+                  <Button variant="ghost" onClick={unassign} disabled={busy}>
+                    Unassign
+                  </Button>
+                )}
               </div>
             )}
 

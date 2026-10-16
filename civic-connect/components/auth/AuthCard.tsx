@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-// Shared frame so sign in and sign up look and behave as one flow.
 export function AuthCard({ title, intro, children, switchText, switchLabel, switchHref }: {
   title: string;
   intro: string;

@@ -9,6 +9,7 @@ const HTTP_STATUS: Record<RequestActionCode, number> = {
   VERSION_CONFLICT: 409,
   ILLEGAL_TRANSITION: 422,
   INVALID_ASSIGNEE: 422,
+  FORBIDDEN: 403,
 };
 
 const fail = (error: string, status: number) => Response.json({ error }, { status });

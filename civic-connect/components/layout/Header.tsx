@@ -14,16 +14,20 @@ const NAV: Record<Role, Item[]> = {
     { href: "/requests", label: "My requests", exact: true },
   ],
   staff: [
-    { href: "/queue", label: "Queue" },
+    { href: "/queue", label: "Unassigned", exact: true },
+    { href: "/queue/mine", label: "My requests", exact: true },
+    { href: "/queue/all", label: "All requests", exact: true },
   ],
   manager: [
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/queue", label: "Queue" },
+    { href: "/queue", label: "Unassigned", exact: true },
+    { href: "/queue/all", label: "All requests", exact: true },
     { href: "/audit", label: "Audit log" },
   ],
   admin: [
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/queue", label: "Queue" },
+    { href: "/queue", label: "Unassigned", exact: true },
+    { href: "/queue/all", label: "All requests", exact: true },
     { href: "/audit", label: "Audit log" },
   ],
 };

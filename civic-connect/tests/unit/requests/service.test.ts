@@ -25,9 +25,9 @@ const fake = vi.hoisted(() => {
 
 vi.mock("@/lib/db", () => ({ db: { transaction: (run: (tx: unknown) => unknown) => run(fake.tx) } }));
 
-import { advanceRequest, assignRequest } from "@/lib/requests/service";
+import { advanceRequest, assignRequest, unassignRequest } from "@/lib/requests/service";
 
-const row = (status: string, version = 1) => ({ id: 1, status, version, resolutionNotes: null });
+const row = (status: string, version = 1, assignedStaffId: number | null = null) => ({ id: 1, status, version, resolutionNotes: null, assignedStaffId });
 
 beforeEach(() => {
   fake.selects = [];
@@ -54,6 +54,13 @@ describe("assignRequest (FR-005)", () => {
   it("refuses a requester as the assignee and saves nothing", async () => {
     fake.selects = [[row("submitted")], [{ id: 3, name: "A Resident", role: "requester" }]];
     await expect(assignRequest("CC-7H3K9P", 3, 4, 1)).rejects.toMatchObject({ code: "INVALID_ASSIGNEE" });
+    expect(fake.updates).toEqual([]);
+    expect(fake.inserts).toEqual([]);
+  });
+
+  it("refuses to assign a request to the person who already holds it", async () => {
+    fake.selects = [[row("assigned", 2, 7)], [{ id: 7, name: "Sipho Dlamini", role: "staff" }]];
+    await expect(assignRequest("CC-7H3K9P", 7, 4, 2)).rejects.toMatchObject({ code: "ILLEGAL_TRANSITION" });
     expect(fake.updates).toEqual([]);
     expect(fake.inserts).toEqual([]);
   });
@@ -89,5 +96,40 @@ describe("advanceRequest (FR-006)", () => {
 
   it("returns 404-style NOT_FOUND for an unknown tracking ID", async () => {
     await expect(advanceRequest("CC-NOPE00", "in_progress", undefined, 4, 1)).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+describe("unassignRequest", () => {
+  it("lets staff unassign their own request, returns it to Submitted and writes the audit row", async () => {
+    fake.selects = [[row("assigned", 2, 7)], [{ name: "Sipho Dlamini" }]];
+    await unassignRequest("CC-7H3K9P", { id: 7, role: "staff" }, 2);
+    expect(fake.updates[0]).toMatchObject({ assignedStaffId: null, status: "submitted", version: 3 });
+    expect(fake.inserts).toEqual([{ serviceRequestId: 1, userId: 7, action: "unassigned", notes: "Unassigned from Sipho Dlamini" }]);
+  });
+
+  it("lets a manager unassign anyone's request", async () => {
+    fake.selects = [[row("in_progress", 2, 7)], [{ name: "Sipho Dlamini" }]];
+    await unassignRequest("CC-7H3K9P", { id: 9, role: "manager" }, 2);
+    expect(fake.updates[0]).toMatchObject({ assignedStaffId: null, status: "submitted" });
+    expect(fake.inserts[0]).toMatchObject({ action: "unassigned", userId: 9 });
+  });
+
+  it("refuses staff who do not hold the request and saves nothing", async () => {
+    fake.selects = [[row("assigned", 2, 7)]];
+    await expect(unassignRequest("CC-7H3K9P", { id: 8, role: "staff" }, 2)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(fake.updates).toEqual([]);
+    expect(fake.inserts).toEqual([]);
+  });
+
+  it("refuses an unassigned or finished request", async () => {
+    fake.selects = [[row("submitted", 1, null)]];
+    await expect(unassignRequest("CC-7H3K9P", { id: 9, role: "manager" }, 1)).rejects.toMatchObject({ code: "ILLEGAL_TRANSITION" });
+    fake.selects = [[row("resolved", 4, 7)]];
+    await expect(unassignRequest("CC-7H3K9P", { id: 9, role: "manager" }, 4)).rejects.toMatchObject({ code: "ILLEGAL_TRANSITION" });
+    expect(fake.inserts).toEqual([]);
+  });
+
+  it("refuses a stale version", async () => {
+    fake.selects = [[row("assigned", 3, 7)]];
+    await expect(unassignRequest("CC-7H3K9P", { id: 7, role: "staff" }, 2)).rejects.toMatchObject({ code: "VERSION_CONFLICT" });
   });
 });

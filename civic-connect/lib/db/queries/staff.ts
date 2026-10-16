@@ -1,4 +1,4 @@
-import { asc, desc, inArray } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { serviceRequests, users } from "@/lib/db/schema";
 
@@ -12,6 +12,6 @@ export async function listAssignableStaff(): Promise<StaffOption[]> {
   return db
     .select({ id: users.id, name: users.name })
     .from(users)
-    .where(inArray(users.role, ["staff", "manager", "admin"]))
+    .where(eq(users.role, "staff"))
     .orderBy(asc(users.name));
 }

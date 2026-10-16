@@ -12,7 +12,6 @@ export const metadata: Metadata = { title: "Request details" };
 
 export default async function RequestPage({ params }: PageProps<"/requests/[trackingId]">) {
   const { trackingId } = await params;
-  // Only your own requests are visible. Anything else looks the same as "does not exist".
   const user = await getCurrentUser();
   const r = user ? await getMyRequest(user.id, trackingId) : undefined;
   if (!r) notFound();

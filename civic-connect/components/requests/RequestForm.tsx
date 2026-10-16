@@ -22,7 +22,7 @@ export function RequestForm() {
 
   async function onSubmit(ev: FormEvent<HTMLFormElement>) {
     ev.preventDefault();
-    if (phase === "sending") return; // controls repeat submission
+    if (phase === "sending") return;
     const data = new FormData(ev.currentTarget);
     const fields = readFields((key) => data.get(key));
     const found = validateRequest(fields);

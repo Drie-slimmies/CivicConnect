@@ -5,7 +5,6 @@ export interface CategoryRow {
   closed: number;
 }
 
-// Counts are written out next to each bar, so the chart never relies on colour alone.
 export function CategoryBreakdown({ rows }: { rows: CategoryRow[] }) {
   const max = Math.max(1, ...rows.map((r) => r.open + r.resolved + r.closed));
   return (

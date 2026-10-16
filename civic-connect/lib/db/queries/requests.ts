@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { auditLogs, categories, serviceRequests, users } from "@/lib/db/schema";
 import { STATUSES, type Category, type PublicRequest, type RequestDetail, type Status } from "@/lib/dto";
@@ -37,7 +37,6 @@ export async function createRequest(requesterId: number, fields: RequestFields):
   });
 }
 
-// Helper to fetch requests using standard joins instead of db.query
 async function fetchRequestsWithRelations(whereCondition?: SQL) {
   const requests = await db
     .select({
@@ -61,7 +60,6 @@ async function fetchRequestsWithRelations(whereCondition?: SQL) {
     .where(whereCondition)
     .orderBy(desc(serviceRequests.createdAt));
 
-  // Fetch audit logs for all retrieved request IDs
   const requestIds = requests.map((r) => r.id);
   if (requestIds.length === 0) return [];
 
@@ -92,22 +90,29 @@ async function fetchRequestsWithRelations(whereCondition?: SQL) {
 
 type Row = Awaited<ReturnType<typeof fetchRequestsWithRelations>>[number];
 
+export function buildHistory(logs: { action: string; createdAt: Date }[]): { status: Status; at: string }[] {
+  let history: { status: Status; at: string }[] = [];
+  for (const a of logs) {
+    if (a.action === "unassigned") history = history.filter((h) => h.status === "submitted");
+    else if (STATUSES.includes(a.action as Status)) history.push({ status: a.action as Status, at: a.createdAt.toISOString() });
+  }
+  return history;
+}
+
 export function toDetail(r: Row): RequestDetail {
   return {
     trackingId: r.trackingId,
     title: r.title,
     description: r.description,
     location: r.location,
-    category: (r.category?.name ?? "General") as Category,
+    category: (r.category?.name ?? "Other") as Category,
     status: r.status,
     assignedTo: r.assignedStaff?.name ?? null,
     resolutionNotes: r.resolutionNotes,
     version: r.version,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
-    history: r.auditLogs
-      .filter((a) => STATUSES.includes(a.action as Status))
-      .map((a) => ({ status: a.action as Status, at: a.createdAt.toISOString() })),
+    history: buildHistory(r.auditLogs),
   };
 }
 
@@ -128,8 +133,20 @@ export async function getPublicRequest(trackingId: string): Promise<PublicReques
   return rows[0] ? toPublic(toDetail(rows[0])) : undefined;
 }
 
-export async function listRequests(): Promise<RequestDetail[]> {
+export async function listAllRequests(): Promise<RequestDetail[]> {
   const rows = await fetchRequestsWithRelations(undefined);
+  return rows.map(toDetail);
+}
+
+export async function listUnassignedRequests(): Promise<RequestDetail[]> {
+  const rows = await fetchRequestsWithRelations(
+    and(isNull(serviceRequests.assignedStaffId), eq(serviceRequests.status, "submitted")),
+  );
+  return rows.map(toDetail);
+}
+
+export async function listRequestsAssignedTo(staffId: number): Promise<RequestDetail[]> {
+  const rows = await fetchRequestsWithRelations(eq(serviceRequests.assignedStaffId, staffId));
   return rows.map(toDetail);
 }
 

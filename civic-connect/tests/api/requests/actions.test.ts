@@ -4,6 +4,7 @@ const state = vi.hoisted(() => ({
   user: null as { id: number; role: string } | null,
   assignRequest: vi.fn(),
   advanceRequest: vi.fn(),
+  unassignRequest: vi.fn(),
   getRequestByTrackingId: vi.fn(),
 }));
 
@@ -20,10 +21,11 @@ vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("@/lib/db/queries/requests", () => ({ getRequestByTrackingId: state.getRequestByTrackingId }));
 vi.mock("@/lib/requests/service", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/requests/service")>();
-  return { ...real, assignRequest: state.assignRequest, advanceRequest: state.advanceRequest };
+  return { ...real, assignRequest: state.assignRequest, advanceRequest: state.advanceRequest, unassignRequest: state.unassignRequest };
 });
 
 import { POST as assign } from "@/app/api/requests/[trackingId]/assign/route";
+import { POST as unassign } from "@/app/api/requests/[trackingId]/unassign/route";
 import { POST as status } from "@/app/api/requests/[trackingId]/status/route";
 import { RequestActionError } from "@/lib/requests/service";
 
@@ -35,6 +37,7 @@ beforeEach(() => {
   state.user = { id: 4, role: "staff" };
   state.assignRequest.mockReset().mockResolvedValue(undefined);
   state.advanceRequest.mockReset().mockResolvedValue(undefined);
+  state.unassignRequest.mockReset().mockResolvedValue(undefined);
   state.getRequestByTrackingId.mockReset().mockResolvedValue({ trackingId: "CC-7H3K9P", status: "assigned", version: 2 });
 });
 
@@ -95,5 +98,29 @@ describe("POST /api/requests/[trackingId]/status (FR-006)", () => {
     const res = await status(post({ status: "in_progress", version: 2 }), ctx);
     expect(res.status).toBe(500);
     expect((await res.json()).error).not.toMatch(/connection/);
+  });
+});
+describe("POST /api/requests/[trackingId]/unassign", () => {
+  it("returns 401 when signed out and 403 for a requester", async () => {
+    state.user = null;
+    expect((await unassign(post({ version: 1 }), ctx)).status).toBe(401);
+    state.user = { id: 3, role: "requester" };
+    expect((await unassign(post({ version: 1 }), ctx)).status).toBe(403);
+    expect(state.unassignRequest).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when the version is missing", async () => {
+    expect((await unassign(post({}), ctx)).status).toBe(400);
+  });
+
+  it("unassigns as the signed-in user and returns the updated request", async () => {
+    const res = await unassign(post({ version: 2 }), ctx);
+    expect(res.status).toBe(200);
+    expect(state.unassignRequest).toHaveBeenCalledWith("CC-7H3K9P", state.user, 2);
+  });
+
+  it("returns 403 when staff try to unassign someone else's request", async () => {
+    state.unassignRequest.mockRejectedValue(new RequestActionError("FORBIDDEN", "You can only unassign requests that are assigned to you."));
+    expect((await unassign(post({ version: 2 }), ctx)).status).toBe(403);
   });
 });

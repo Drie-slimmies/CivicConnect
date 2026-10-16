@@ -28,7 +28,7 @@ export default async function QueueItemPage({ params }: PageProps<"/queue/[track
         <Link href="/queue" className="w-fit font-medium text-primary underline underline-offset-2">
           Back to the queue
         </Link>
-        <RequestWorkspace initial={r} staff={staff} me={{ id: user.id, name: user.name }} />
+        <RequestWorkspace initial={r} staff={staff} me={user.role === "staff" ? { id: user.id, name: user.name } : null} role={user.role} />
       </div>
     </RoleGate>
   );

@@ -24,7 +24,6 @@ describe("request queries", () => {
       resolutionNotes: null,
       requesterId: 3,
       assignedStaffId: 4,
-      assignedDepartmentId: null,
       version: 2,
       createdAt: new Date("2026-10-13T08:00:00Z"),
       updatedAt: new Date("2026-10-13T09:00:00Z"),
