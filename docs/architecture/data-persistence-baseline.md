@@ -1,6 +1,6 @@
 # Data and Persistence Baseline
 
-**Status: initial baseline for Milestone 2 (October 2026).** Written against the schema in `civic-connect/lib/db/schema.ts`, ADR-04 (stack) and ADR-05 (architectural style) in the PED, and brief section 5.4. Sections marked *planned* describe intended design that is not yet implemented. Updated on 13 October 2026 for the authentication branch (password hashes, sessions, role checks) and to record that audit immutability is now enforced by the database (migration 0001). Updated on 14 October 2026 for the requester slice (request creation with its first audit row in one transaction) and for CR-010 (plain layered monolith: no domain modules or events).
+**Status: initial baseline for Milestone 2 (October 2026).** Written against the schema in `civic-connect/lib/db/schema.ts`, ADR-04 (stack) and ADR-05 (architectural style) in the PED, and brief section 5.4. Sections marked *planned* describe intended design that is not yet implemented. Updated on 13 October 2026 for the authentication branch (password hashes, sessions, role checks) and to record that audit immutability is now enforced by the database (migration 0001). Updated on 14 October 2026 for the requester slice (request creation with its first audit row in one transaction) and for CR-010 (plain layered monolith: no domain modules or events). Updated on 16 October 2026 for the staff slice: assignment, unassigning and status changes now write the change and its audit row in one transaction, lookup indexes were added (migration 0002), and the department is read through the category, so `assigned_department_id` was dropped (migration 0003, CR-013).
 
 ## 1. Entities, relationships, ownership and lifecycle
 
@@ -9,8 +9,8 @@
 | `users` | Requesters, staff, managers, admins (`role` enum). Holds personal data (name, email) and the password hash. | Access control (cross-cutting) | Requesters are created by self sign-up (CR-009); staff and manager accounts are seeded; retained while the account is active. |
 | `categories` | Reference list of request types. Each category maps to one department (CR-006). | Requests | Rarely changes; set by the seed script (no administrator screen in M3). |
 | `departments` | Reference list of responsible departments. | Requests | Rarely changes; set by the seed script (no administrator screen in M3). |
-| `service_requests` | The core aggregate: one citizen request with location (free text), status, department, assignment and resolution notes. | Requests (create; status and assignment in the staff workflow) | submitted -> assigned -> in_progress -> resolved -> closed. Never hard-deleted; `closed` is a state, not a deletion. |
-| `audit_logs` | Append-only history of actions on a request (who, what, when). | Audit (Decorator, ADR-02) | Written on every significant action; never updated. |
+| `service_requests` | The core aggregate: one citizen request with location (free text), status, assignment and resolution notes. Its department is read through its category (CR-013). | Requests (create; status and assignment in the staff workflow) | submitted -> assigned -> in_progress -> resolved -> closed. Never hard-deleted; `closed` is a state, not a deletion. |
+| `audit_logs` | Append-only history of actions on a request (who, what, when). | Audit (ADR-02, CR-014) | Written on every significant action; never updated. |
 
 ```mermaid
 erDiagram
@@ -18,7 +18,6 @@ erDiagram
     users |o--o{ service_requests : "assigned to (assigned_staff_id)"
     categories ||--o{ service_requests : "classifies"
     departments ||--o{ categories : "handles"
-    departments |o--o{ service_requests : "responsible for"
     service_requests ||--o{ audit_logs : "has history"
     users ||--o{ audit_logs : "performed by"
 ```
@@ -38,15 +37,15 @@ Reasoning chain (Week 2, SO8): evidence -> concern -> decision -> trade-off -> j
 ## 3. Integrity, consistency and concurrency
 
 - **Declared constraints (implemented):** primary keys, NOT NULL on required fields, foreign keys on all relationships, unique `users.email` (the index is case-sensitive, so the application trims and lowercases every email before it is stored or compared, and a duplicate that slips past the check is caught through Postgres error 23505), unique `service_requests.tracking_id`, unique category and department names, `categories.department_id` foreign key to `departments`, enum types for `role` and `status`.
-- **Transaction boundary (ADR-04):** a change to `service_requests` and the matching `audit_logs` insert run in one interactive transaction using the Neon WebSocket Pool driver. If either fails, both roll back. Implemented for request creation (`createRequest` inserts the request and its "submitted" audit row together); planned for status changes and assignment in the Staff slice. The department-routing step is a direct call inside the same transaction (ADR-03 as superseded by CR-010) and is not built yet.
-- **Concurrency (partly implemented):** `service_requests.version` exists for optimistic concurrency. Planned behaviour: update with `WHERE id = ? AND version = ?`, increment `version`, and return a conflict error if no row matched (risk R-10).
-- **Current versus historical state:** `service_requests` holds the current state; `audit_logs` holds the history. Current assignment fields are overwritten on reassignment, and the audit entry preserves what was true at the time.
-- **Validation split (planned):** business rules (for example, resolution notes required to resolve, FR-006) live in the State pattern classes; structural rules live in database constraints.
+- **Transaction boundary (ADR-04):** a change to `service_requests` and the matching `audit_logs` insert run in one interactive transaction using the Neon WebSocket Pool driver. If either fails, both roll back. Implemented for request creation (`createRequest` inserts the request and its "submitted" audit row together) and, since the staff slice, for assignment, unassigning and status changes (`assignRequest`, `unassignRequest` and `advanceRequest` in `lib/requests/service.ts`, each writing its audit row with `logAuditAction`). There is no routing step: the department is read through the category (ADR-03, CR-013).
+- **Concurrency (implemented):** `service_requests.version` gives optimistic concurrency. Each staff action updates with `WHERE id = ? AND version = ?`, increments `version` and answers 409 if no row matched, so the screen asks for a reload (risk R-10).
+- **Current versus historical state:** `service_requests` holds the current state; `audit_logs` holds the history. Current assignment fields are overwritten on reassignment or unassigning, and the audit entry preserves what was true at the time. A request's progress timeline is rebuilt from its audit rows, and an `unassigned` entry steps it back to Submitted.
+- **Validation split (implemented):** business rules (for example, resolution notes required to resolve, FR-006) live in the State pattern classes; structural rules live in database constraints.
 
 ## 4. Sensitivity and security consequences
 
 - **Personal data:** `users.name`, `users.email`, and request `title`, `location` and `description` can identify a person or their address. These are personal information under POPIA (NFR-004).
-- **Least privilege (partly implemented):** role-based checks (`requester`, `staff`, `manager`, `admin`) are enforced in the application layer by `requireRole()` in `lib/auth/guard.ts`, which reads the user's role from the `users` table on every request and does not trust the role stored in the session cookie. It is applied to data routes as they are built. Planned: the application connects with a database role that has no schema-change rights, and the public tracking lookup returns only a minimal status view (a read-only DTO, not the full row).
+- **Least privilege (partly implemented):** role-based checks (`requester`, `staff`, `manager`, `admin`) are enforced in the application layer by `requireRole()` in `lib/auth/guard.ts`, which reads the user's role from the `users` table on every request and does not trust the role stored in the session cookie. It is applied to every data route (requester, staff and manager). Planned: the application connects with a database role that has no schema-change rights, and the public tracking lookup returns only a minimal status view (a read-only DTO, not the full row).
 - **Passwords (implemented):** `users.password_hash` holds an scrypt hash (random 16-byte salt, 64-byte key) and nothing else about the password. The hash is never returned by any route; the login lookup is the only query that selects it.
 - **Sessions (implemented):** there is no sessions table. A session is a signed token in an HTTP-only cookie (ADR-06), so nothing about sessions is stored in the database. Consequence: a single session cannot be revoked; see TD-02 in the technical debt register.
 - **Secrets:** the connection string (`DATABASE_URL`), the session signing secret (`SESSION_SECRET`) and the seed passwords (`SEED_*`) are read from environment variables and not committed (`.env.example` documents the names with placeholders only).
@@ -71,18 +70,18 @@ Reasoning chain (Week 2, SO8): evidence -> concern -> decision -> trade-off -> j
 
 ## 6. Scalability and growth
 
-Expected volume is low (a request is a single row plus a few audit rows). A single PostgreSQL instance is more than sufficient for foreseeable load. The first likely bottlenecks are not database size but (a) connection handling from serverless functions (R-09) and (b) cold start (R-07). Unique indexes already cover the public tracking lookup. Secondary indexes for the staff queue (`assigned_staff_id`, `status`) are *planned* when FR-004 is implemented, driven by the actual query, not added speculatively.
+Expected volume is low (a request is a single row plus a few audit rows). A single PostgreSQL instance is more than sufficient for foreseeable load. The first likely bottlenecks are not database size but (a) connection handling from serverless functions (R-09) and (b) cold start (R-07). Unique indexes cover the public tracking lookup. Migration 0002 adds the secondary indexes for the lookups the screens run: `service_requests.requester_id` (my requests), `assigned_staff_id` (My requests for staff), `status` (Unassigned view and dashboard counts) and `audit_logs.service_request_id` (request history).
 
 ## 7. Known gaps in the current schema (honest list)
 
 1. **Audit immutability (resolved at database level, residual gap).** Migration `0001_audit_immutable.sql` adds triggers that reject UPDATE, DELETE and TRUNCATE on `audit_logs`. A database owner could still drop the trigger. Planned: also revoke UPDATE/DELETE on `audit_logs` from the application role.
 2. **Audit entries do not record old and new status.** They hold `action` and `notes` only. Planned: add structured fields if reporting needs them.
-3. **No secondary indexes yet** for the staff queue (see section 6).
+3. **Secondary indexes (resolved).** Added by migration 0002 for the lookups in use (see section 6); further indexes only if measured load needs them.
 4. **No `ON DELETE` behaviour declared** on foreign keys. Because records are closed rather than deleted this is low risk, but it should be stated explicitly when migrations are added.
 5. **Personal-data encryption and retention rules** are planned, not implemented (sections 4 and 5).
 
 ## 8. Decisions and risks recorded
 
-- Related decisions: ADR-03 (routing is a direct call in the creation transaction; Mediator superseded by CR-010), ADR-04 (stack and Pool driver), ADR-05 (plain layered monolith, single database), ADR-06 (signed-cookie sessions), ED-04, ED-05 and ED-07 in the Decision Log; CR-010 in Change Control.
+- Related decisions: ADR-03 (no routing step: the department is read through the category; Mediator superseded by CR-010 and CR-013), ADR-04 (stack and Pool driver), ADR-05 (plain layered monolith, single database), ADR-06 (signed-cookie sessions), ED-04, ED-05 and ED-07 in the Decision Log; CR-010, CR-013 and CR-014 in Change Control.
 - Related risks: R-07 (cold start), R-08 (free-tier compute cap), R-09 (connection pool), R-10 (concurrent updates), R-11 (POPIA controls), R-13 (hand-written sign-up and sign-in).
 - RTM: NFR-004 and FR-008 rows reference `lib/db/schema.ts`; their status stays accurate to what is implemented.

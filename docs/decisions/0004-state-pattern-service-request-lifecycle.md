@@ -37,3 +37,4 @@
 
   - Cons - Adds a new type file to the lib folder.
 
+- Implementation note (M3, staff slice, 16 October 2026): built as decided. `lib/states/` holds `RequestState` (`types.ts`), one object per status and `stateFor(status)` (`index.ts`); each state says whether a request can be assigned (`canAssign`), which step is next and whether a move is valid, and the in-progress state refuses to resolve without resolution notes (FR-006). The request service asks the state before it changes anything. Unassigning ([CR-012](../change/change-control.md)) is a service action and not a state transition: it returns an Assigned or In progress request to Submitted, and Resolved and Closed requests refuse it.

@@ -2,7 +2,7 @@
 
 > Migrated from PED v1.0 (Word submission). Source content unchanged; reformatted into the repo's docs/ structure per lecturer feedback on Milestone 1 presentation.
 > Functional and Non-Functional Requirements updated for PED v2.0 per [CR-001 to CR-005](../change/change-control.md) (M1 IDs and scope realigned during M2).
-> Scope Baseline, FR-001, FR-003, FR-004, FR-006, NFR-004 and the Security constraint updated in M3 per [CR-004 to CR-009](../change/change-control.md) (scope freeze). Everything else in this file is unchanged M1 content.
+> Scope Baseline, FR-001, FR-003 to FR-006, NFR-004 and the Security constraint updated in M3 per [CR-004 to CR-009](../change/change-control.md) (scope freeze) and [CR-011 and CR-012](../change/change-control.md) (staff slice). Everything else in this file is unchanged M1 content.
 
 # Problem and Business Need Analysis
 
@@ -272,20 +272,16 @@ category, sort by date, and open any request to see its full
 details.</td>
 <td>High</td>
 <td>Staff</td>
-<td>When a logged in staff member accesses the ticket queue, all
-requests are displayed, and filtering, sorting and opening a request to
-see its full details work.</td>
+<td>When a logged in staff member opens the queue, the Unassigned view lists the requests nobody holds, My requests lists the requests assigned to them, and All requests lists every request; searching, filtering, sorting and opening a request to see its full details work in each view (CR-011).</td>
 </tr>
 <tr class="odd">
 <td>FR-005</td>
 <td>Ticket Assignment</td>
-<td>Authorized staff will be allowed to assign a ticket to themselves or
-other authorized staff members which changes status to “Assigned”.</td>
+<td>Authorized staff will be allowed to assign a ticket to themselves or to another staff member, which changes status to “Assigned”. Managers can assign tickets to staff but cannot be assigned tickets. A ticket can be unassigned, which returns it to “Submitted” (CR-012).</td>
 <td>Medium</td>
 <td><p>Staff/</p>
 <p>Management</p></td>
-<td>In the case of an unassigned ticket, a staff member clicks “Assign
-to Me” or transfers the ticket to another staff member.</td>
+<td>In the case of an unassigned ticket, a staff member clicks “Assign to Me” or transfers the ticket to another staff member. A staff member can unassign a ticket assigned to them and a manager can unassign any ticket; the ticket returns to Submitted and the unassignment is audited. A manager is never offered “Assign to Me” and cannot be chosen as the assignee.</td>
 </tr>
 <tr class="even">
 <td>FR-006</td>
@@ -441,10 +437,7 @@ unauthorized users.
 
 - Requester: submits requests and sees their own requests. Anyone with a
   tracking ID: sees the limited public status only. Staff: see all
-  requests, search, filter, sort, assign a request to themselves or
-  another staff member, move it forward one step, add notes, resolve and
-  close. Manager: everything staff can do, plus the dashboard and the
-  audit log.
+  requests, search, filter, sort, assign a request to themselves or another staff member, unassign their own requests, move it forward one step, add notes, resolve and close. Manager: everything staff can do except take a request for themselves (a manager assigns requests to staff but cannot be assigned one, CR-012), plus the dashboard and the audit log.
 
 - The administrator role exists in the data model but has no features in
   M3. Password reset, email verification and an administrator screen are

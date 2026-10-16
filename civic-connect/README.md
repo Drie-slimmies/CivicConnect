@@ -2,7 +2,7 @@
 
 Community service request management application for SEN381 (Group M). This folder holds the Next.js application. Project governance, requirements, decisions and registers are in the repository's top-level [`docs/`](../docs) folder and the [root README](../README.md).
 
-**Status (Milestone 3 work in progress):** the project skeleton, database schema, CI, requester sign-up, sign-in, sign-out and role-based session handling, and the requester features (submit a request, my requests, request details, public tracking) are in place and tested. The staff and manager features are still to be built; those screens show sample data. New requests are not yet routed to a department. Items marked _planned_ below do not exist yet.
+**Status (Milestone 3 work in progress):** the project skeleton, database schema, CI, requester sign-up, sign-in, sign-out and role-based session handling, and the requester features (submit a request, my requests, request details, public tracking) are in place and tested. The staff features (Unassigned, My requests and All requests views, assign, unassign, status changes with resolution notes) and the manager dashboard and audit log are built too. A request's department is read through its category (CR-013). Items marked _planned_ below do not exist yet.
 
 ## Stack
 
@@ -56,7 +56,7 @@ Only variable names and placeholders belong in `.env.example`. Real values stay 
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `npm run dev`                             | Start the development server at http://localhost:3000                                          |
 | `npm run lint`                            | ESLint                                                                                         |
-| `npm test`                                | Vitest unit and API tests in `tests/` (39 tests). They need no database and no `.env`.         |
+| `npm test`                                | Vitest unit and API tests in `tests/` (90 tests). They need no database and no `.env`.         |
 | `npm run db:migrate`                      | Apply the committed migrations to the database in `DATABASE_URL`                               |
 | `npm run db:seed`                         | Insert reference data and the three demo accounts                                              |
 | `npx tsc --noEmit`                        | Type check (run after `npm run build`, because Next.js generates route types during the build) |
@@ -69,16 +69,17 @@ The same checks run in GitHub Actions on every pull request and push to `main` (
 
 | Path              | Contents                                                                            |
 | ----------------- | ----------------------------------------------------------------------------------- |
-| `app/`            | Next.js routes and pages. Implemented endpoints: `app/api/health`, `app/api/auth/register`, `login` and `logout`, and `POST app/api/requests`. Requester screens: `app/(requester)/requests`, `app/track`. |
+| `app/`            | Next.js routes and pages. Implemented endpoints: `app/api/health`, `app/api/auth/register`, `login` and `logout`, `POST app/api/requests` and, under `app/api/requests/[trackingId]/`, `POST assign`, `unassign` and `status`. Requester screens: `app/(requester)/requests`, `app/track`. Staff screens: `app/(staff)/queue` (Unassigned), `queue/mine`, `queue/all` and `queue/[trackingId]`. Manager screens: `app/(manager)/dashboard` and `audit`. |
 | `lib/auth/`       | Passwords (`password.ts`), signed sessions (`session.ts`), current user and role checks (`guard.ts`), browser helper (`client.ts`) |
 | `components/auth/` | Sign-in and sign-up forms, the session provider and the success popup |
 | `scripts/`        | `seed.mjs`: reference data and demo accounts |
-| `drizzle/`        | Committed SQL migrations (`0001` makes `audit_logs` append-only) |
-| `lib/db/`         | Drizzle schema (`schema.ts`), database client (`index.ts`) and queries (`queries/requests.ts`) |
-| `lib/requests/`   | Request rules: field reading, validation, public view (`rules.ts`) |
-| `components/requests/` | Requester screens' components (request cards, forms) |
-| `lib/states/`     | State pattern for the request lifecycle (ADR-01); _stub files only_                 |
-| `lib/decorators/` | Audit logging decorator (ADR-02); _stub file only_                                  |
+| `drizzle/`        | Committed SQL migrations (`0001` makes `audit_logs` append-only, `0002` adds lookup indexes, `0003` drops `assigned_department_id`) |
+| `lib/db/`         | Drizzle schema (`schema.ts`), database client (`index.ts`) and queries (`queries/requests.ts`, `audit.ts`, `dashboard.ts`, `staff.ts`) |
+| `lib/requests/`   | Request rules (`rules.ts`), staff actions (`service.ts`: assign, unassign, change status), the shared route handler (`actionRoute.ts`) and the staff role list (`staffRoles.ts`) |
+| `components/requests/` | Requester screens' components (request cards, forms, progress timeline) |
+| `components/staff/` | Staff queue views, queue tabs and the request workspace |
+| `lib/states/`     | State pattern for the request lifecycle (ADR-01): one file per status and `stateFor` |
+| `lib/decorators/` | Audit logging (ADR-02, CR-014): `logAuditAction`, called inside each transaction     |
 | `tests/`          | Automated tests: `tests/unit/auth` and `tests/unit/requests` (unit), `tests/api/auth` and `tests/api/requests` (API handlers with the database mocked) |
 
 ## Authentication
@@ -87,11 +88,11 @@ Sign-up always creates a requester; staff and manager accounts come from the see
 
 ## Known limitations
 
-- Sign-up, sign-in, sign-out, role checks and the requester features work. The staff and manager pages still show sample data from `lib/mock/data.ts` and have no guarded routes yet (risk R-05: use dummy data only).
+- Sign-up, sign-in, sign-out, role checks, the requester features, the staff workflow and the manager screens work against the database. Use dummy data only until the POPIA controls in NFR-004 are finished (risk R-05).
 - Not built: password reset, email verification, login rate limiting and per-session revocation. They are recorded in the [technical debt register](../docs/quality/technical-debt-register.md) and risk R-13.
 - The API and query tests mock the database, so they do not check SQL, constraints or the request-plus-audit transaction against a real database.
-- Department routing, assignment, status changes and the audit decorator are not built (FR-002 partly, FR-004 to FR-008); `lib/events/` stubs are obsolete under CR-010 and are to be removed.
-- Several `lib/` files are empty stubs for decisions that are documented but not yet built. The [RTM](../docs/requirements/rtm.md) states the real status of each requirement.
+- The queue screens and the staff workspace have no automated test (TD-10); the other known gaps are in the technical debt register.
+- The [RTM](../docs/requirements/rtm.md) states the real status of each requirement.
 - Dev-tooling vulnerabilities with no upstream patch are accepted as risk R-12 (CI gates production dependencies only).
 
 ## Documentation links

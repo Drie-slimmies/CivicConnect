@@ -32,3 +32,4 @@
   - Cons – Adds an extra wrapper layer to look through when stepping
     through code in a debugger.
 
+- Implementation note (M3, staff slice, [CR-014](../change/change-control.md)): the audit write is built as a function, `logAuditAction(tx, ...)` in `lib/decorators/auditDecorator.ts`, that the request service calls inside its own database transaction, and not as an `AuditServiceDecorator` class wrapping the service. A wrapper that runs before and after the service cannot share the service's transaction, and FR-006, FR-008 and ADR-04 need the change and its audit row to commit or roll back together. The aim of the decision is kept: audit writing lives in one file and the business rules in `lib/states/` do not log. The cost is that each service action has to call it, so the service tests assert the audit row for every action (assign, transfer, unassign and each status change). The database also rejects UPDATE, DELETE and TRUNCATE on `audit_logs` (migration 0001).

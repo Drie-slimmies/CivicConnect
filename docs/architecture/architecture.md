@@ -4,8 +4,7 @@
 
 Logical layers: Presentation (Next.js Client/Server Components) -\>
 Application (Next.js Route Handlers) -\> Domain (State pattern for the
-request lifecycle, Decorator pattern for audit logging, and the request
-service that routes a new request to its department by a direct call) -\>
+request lifecycle, Decorator pattern for audit logging, and the request service that applies each change and its audit row in one transaction) -\>
 Data access (Drizzle ORM) -\> Persistence (Neon serverless PostgreSQL).
 
 Physical deployment: Browser -\> Next.js application on a serverless
@@ -38,43 +37,15 @@ architectural style this view illustrates is decided in ADR-05._
 
 ## Initial API / Integration Decision
 
-The one interaction between request intake and department routing is a
-direct in-process call from the request service ([ADR-03](../decisions/0006-direct-in-process-routing-call.md), CR-010). It is
-not a module-to-module integration. Other integrations (e.g. any future
-external/public API) are not yet established and are left as a forward
-engineering consideration (FEC) instead of being invented here.
+Under the plain monolith there is no module-to-module integration to design: features call each other's services in-process ([ADR-05](../decisions/0008-architectural-style-plain-layered-monolith.md), CR-010). Department routing needs no call at all: each category belongs to one department, so a request's department is read through its category ([ADR-03](../decisions/0006-direct-in-process-routing-call.md), CR-013). Other integrations (e.g. any future external/public API) are not yet established and are left as a forward engineering consideration (FEC) instead of being invented here.
 
-- Responsibilities and information exchanged: the request service
-  creates the request and sets its department from the fixed
-  category-to-department map, in the same transaction as the creation
-  and its audit row. The staff queue shows it as a label; staff still
-  see all requests. Routing does not assign a staff member: the request
-  stays Submitted until staff assign it (FR-005). Amended by CR-006 and
-  CR-007; the event-based form was superseded by CR-010. Status: the
-  creation transaction exists (`createRequest` in
-  `lib/db/queries/requests.ts`); the department step is not built yet.
+- Mechanism: direct in-process function calls inside one database transaction, not events, a broker or a network API. A2 compared this against an asynchronous message broker and a synchronous REST call; both were rejected for M2 because a network boundary between parts of the same application is not justified by CivicConnect's current scale, and would add operational complexity with no corresponding benefit yet.
 
-- Mechanism: direct in-process function call within one database
-  transaction, not an event, a broker or a network API. A2 compared this
-  against an asynchronous message broker and a synchronous REST call;
-  both were rejected for M2 because a network boundary between request
-  intake and routing is not justified by CivicConnect's current scale,
-  and would add operational complexity with no corresponding benefit
-  yet.
+- Validation / error behaviour: creating a request saves the request and its first audit row in one transaction (`createRequest` in `lib/db/queries/requests.ts`); staff actions do the same for the change and its audit row (see Staff Workflow API below). If either write fails, both roll back.
 
-- Validation / error behaviour: the routing step runs synchronously
-  inside the request-creation function; if it fails, the whole database
-  transaction rolls back, so no request is saved without its department
-  (see ADR-03 consequences).
+- Security boundary: none required inside the process - these calls never leave the server, so there is no network-facing surface to authenticate separately from the request that triggered them.
 
-- Security boundary: none required yet - the interaction never leaves
-  the server process, so there is no network-facing surface to
-  authenticate or authorise separately from the request that triggered
-  it.
-
-- Change/version implications: no wire contract or event contract
-  exists. If a future milestone extracts routing behind an API, revisit
-  ADR-05 (see its reconsider triggers).
+- Change/version implications: no wire contract or event contract exists between internal parts. If a future milestone extracts a part behind an API, revisit ADR-05 (see its reconsider triggers).
 
 ## Authentication and Session Design
 
@@ -91,3 +62,20 @@ Added on 13 October 2026 (authentication branch). Decision: [ADR-06](../decision
 - Security boundary: unlike the in-process routing call above, this is a network-facing boundary. The same response is returned for an unknown email and a wrong password, and the password hash is never returned by any route.
 
 - Known limits: no login rate limiting and no way to revoke a single session (technical debt register TD-01 and TD-02).
+
+## Staff Workflow API
+
+Added on 16 October 2026 (staff branch). Scope: FR-004 to FR-006 and FR-008; [CR-011 to CR-014](../change/change-control.md); decisions [ADR-01](../decisions/0004-state-pattern-service-request-lifecycle.md) and [ADR-02](../decisions/0005-decorator-pattern-audit-logging.md).
+
+| Route (all `POST`) | Who may call it | Body | Effect | Audit action | Error answers |
+|---|---|---|---|---|---|
+| `/api/requests/[trackingId]/assign` | staff, manager, admin | `assigneeId`, `version` | Assigns or transfers the request to a staff account. Submitted becomes Assigned; an open request keeps its status when transferred | `assigned` or `transferred` | 400 missing field, 401, 403, 404, 409 version conflict, 422 (Resolved or Closed, assignee is not staff, already assigned to that person) |
+| `/api/requests/[trackingId]/unassign` | staff (own requests only), manager, admin | `version` | Returns an Assigned or In progress request to Submitted with nobody assigned | `unassigned` | 400, 401, 403 (staff on someone else's request), 404, 409, 422 (not assigned, Resolved or Closed) |
+| `/api/requests/[trackingId]/status` | staff, manager, admin | `status`, `notes` (optional), `version` | Moves the request to its next step only; resolving needs notes; Closed is final | the new status | 400, 401, 403, 404, 409, 422 |
+
+- Shared handling: `handleRequestAction` in `lib/requests/actionRoute.ts` calls `requireRole("staff", "manager", "admin")` first, checks the body is a JSON object with an integer `version`, runs the action and turns `RequestActionError` codes into 404, 409, 422 or 403. On success it returns the updated request.
+- Rules live in `lib/requests/service.ts` (`assignRequest`, `unassignRequest`, `advanceRequest`) and `lib/states/`. Only accounts with the staff role can be assignees, so managers and admins can assign but never hold a request (CR-012).
+- Concurrency (R-10): each update is guarded by `WHERE id = ? AND version = ?` and increments `version`; a second writer gets 409 and the screen asks for a reload.
+- Audit (FR-008): `logAuditAction(tx, ...)` writes the audit row inside the same transaction as the change (CR-014). The database also rejects UPDATE, DELETE and TRUNCATE on `audit_logs`.
+- Progress timeline: `buildHistory` in `lib/db/queries/requests.ts` builds a request's status history from its audit rows, and an `unassigned` entry steps it back to Submitted. The requester page, the public tracking page and the staff screen all use it.
+- Screens: `/queue` (Unassigned), `/queue/mine` (My requests, staff only), `/queue/all` (All requests) and `/queue/[trackingId]` (request workspace). Each page checks the role on the server and the API enforces access; the screens only decide what to show.
