@@ -39,5 +39,6 @@ the team can act on it.
 
 - **Link to the quality risks:** the five quality risks in the [quality strategy](../quality/quality-strategy.md) map to this register: Q1 to R-05 and R-13, Q2 to R-05, Q3 to R-04, Q5 to R-10. Q4 (audit trail) has no separate entry; its residual gap, that a database owner could drop the immutability trigger, is recorded in the [data and persistence baseline](../architecture/data-persistence-baseline.md).
 - **R-10:** probability stays Low. The strategy rates the quality risk Low to medium because the staff share one queue; revisit after a two-session check against Neon.
-- **R-01:** reduced further. The CI gate now has written rules and thresholds, and the 90 tests run in it.
+- **R-01:** reduced further. The CI gate now has written rules and thresholds, and the 184 tests run in it.
 - **R-14:** new. The hand-run evidence (A4, E1, E2, P1) is the only evidence against the real database and a browser, so skipping it would leave Q1 and Q4 proven against a mock only.
+- **R-07:** the risk showed up in the P1 run (16 October 2026): the all-requests list had a 95th percentile of 2067 ms against the 2 second goal on a free-tier Neon branch ([evidence](../quality/evidence/p1-performance-run.md)). Likelihood is now treated as realised for that page; see TD-16 for the follow-up.

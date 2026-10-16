@@ -46,7 +46,7 @@ describe("readFields", () => {
 });
 
 describe("toPublic", () => {
-  it("never shows the title, description, location or staff name", () => {
+  it("[Q2] never shows the title, description, location or staff name", () => {
     const detail: RequestDetail = {
       trackingId: "CC-7H3K9P",
       category: "Roads and potholes",
