@@ -5,7 +5,7 @@
 - Date: September 2026
 
 - Context: Service requests in CivicConnect have to follow a strict
-  lifecycle(Submitted -\> InProgress -\> Resolved). Each transition
+  lifecycle (Submitted -\> Assigned -\> In Progress -\> Resolved -\> Closed, CR-003). Each transition
   needs proper business validation for example, we can’t let someone
   resolve a ticket without adding resolution notes or skip steps in the
   workflow. Trying to control these state change with nested if/else or
@@ -23,9 +23,11 @@
   states (not an extensible command queue).
 
 - Decision: We are using the State Design Pattern. We defined an
-  IRequestState interface with dedicated classes for each state
-  (SubmittedState, InProgressState, ResolvedState). Each class has its
-  specific business rules and handles its own transition logic.
+  RequestState interface (in lib/states/types.ts) with dedicated
+  classes for each state (SubmittedState, AssignedState,
+  InProgressState, ResolvedState, ClosedState, each in its own file
+  under lib/states/). Each class implements its specific business rules
+  and handles its own transition logic.
 
 - Consequences:
 
@@ -33,5 +35,5 @@
     without cluttering the main service layer. Fits nicely with the
     Single Responsibility and Open/Closed principles.
 
-  - Cons - Adds a few extra class files to the domain folder.
+  - Cons - Adds a new type file to the lib folder.
 
