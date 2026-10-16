@@ -122,8 +122,8 @@ The authentication tests, the dashboard test and the creation tests also run in 
 | 3 | Build (`npm run build`) | Build log | Succeeds | BLOCK | In place |
 | 4 | Typecheck (`npx tsc --noEmit`, after the build) | Compiler output | Zero errors | BLOCK | In place |
 | 5 | Dependency audit (`npm audit --omit=dev --audit-level=high`) | Audit output | No high or critical findings in production dependencies | BLOCK on high or critical; moderate findings are recorded and investigated | In place (0 vulnerabilities on 16 October 2026) |
-| 6 | Skipped-test guard: no `.skip(`, `.skipIf(`, `.todo(` or `.only(` (and no `xit`, `xdescribe` or `xtest`) under `tests/` or `e2e/` | Check output | None found | BLOCK | In place (workflow change, to be confirmed by the first green run on the pull request) |
-| 7 | Secrets scan: gitleaks 8.18.4 (binary, checksum verified) over the full git history | Scan log | Zero findings | BLOCK | In place (workflow change, to be confirmed by the first green run). Run by hand on 16 October 2026: 34 commits scanned, no leaks |
+| 6 | Skipped-test guard: no `.skip(`, `.skipIf(`, `.todo(` or `.only(` (and no `xit`, `xdescribe` or `xtest`) under `tests/` or `e2e/` | Check output | None found | BLOCK | In place and confirmed by a green run on 16 October 2026 ([ci-gate-run.md](evidence/ci-gate-run.md)) |
+| 7 | Secrets scan: gitleaks 8.18.4 (binary, checksum verified) over the full git history | Scan log | Zero findings | BLOCK | In place and confirmed by a green run on 16 October 2026 (35 commits scanned, no leaks; [ci-gate-run.md](evidence/ci-gate-run.md)). Run by hand on 16 October 2026: 34 commits scanned, no leaks |
 | 8 | Saved evidence: test report and audit output uploaded as artifacts on every run | Artifacts | Present | Not blocking, but the run is not citable without them | In place: the artifact `ci-evidence` holds `junit.xml`, `audit.txt` and `gitleaks.txt` for 90 days |
 | 9 | Coverage report | Coverage report | Reported only, no percentage | Reported; what it does and does not show is explained in the Release Evidence Summary | Not included (optional; decided against for now) |
 
