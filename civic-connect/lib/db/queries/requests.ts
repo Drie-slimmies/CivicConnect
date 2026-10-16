@@ -1,7 +1,7 @@
 import { randomInt } from "node:crypto";
-import { and, eq, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { auditLogs, categories, serviceRequests } from "@/lib/db/schema";
+import { auditLogs, categories, serviceRequests, users } from "@/lib/db/schema";
 import { STATUSES, type Category, type PublicRequest, type RequestDetail, type Status } from "@/lib/dto";
 import { toPublic, type RequestFields } from "@/lib/requests/rules";
 
@@ -37,22 +37,67 @@ export async function createRequest(requesterId: number, fields: RequestFields):
   });
 }
 
-function findRequests(where: SQL | undefined) {
-  return db.query.serviceRequests.findMany({
-    where,
-    orderBy: (r, { desc }) => [desc(r.createdAt)],
-    with: {
-      category: { columns: { name: true } },
-      assignedStaff: { columns: { name: true } },
-      auditLogs: {
-        columns: { action: true, createdAt: true },
-        orderBy: (a, { asc }) => [asc(a.createdAt)],
-      },
-    },
-  });
+async function fetchRequestsWithRelations(whereCondition?: SQL) {
+  const requests = await db
+    .select({
+      id: serviceRequests.id,
+      trackingId: serviceRequests.trackingId,
+      title: serviceRequests.title,
+      description: serviceRequests.description,
+      location: serviceRequests.location,
+      status: serviceRequests.status,
+      resolutionNotes: serviceRequests.resolutionNotes,
+      version: serviceRequests.version,
+      createdAt: serviceRequests.createdAt,
+      updatedAt: serviceRequests.updatedAt,
+      requesterId: serviceRequests.requesterId,
+      categoryName: categories.name,
+      assignedStaffName: users.name,
+    })
+    .from(serviceRequests)
+    .leftJoin(categories, eq(serviceRequests.categoryId, categories.id))
+    .leftJoin(users, eq(serviceRequests.assignedStaffId, users.id))
+    .where(whereCondition)
+    .orderBy(desc(serviceRequests.createdAt));
+
+  const requestIds = requests.map((r) => r.id);
+  if (requestIds.length === 0) return [];
+
+  const logs = await db
+    .select({
+      serviceRequestId: auditLogs.serviceRequestId,
+      action: auditLogs.action,
+      createdAt: auditLogs.createdAt,
+    })
+    .from(auditLogs)
+    .where(inArray(auditLogs.serviceRequestId, requestIds))
+    .orderBy(asc(auditLogs.createdAt));
+
+  const logsMap = new Map<number, { action: string; createdAt: Date }[]>();
+  for (const log of logs) {
+    const list = logsMap.get(log.serviceRequestId) || [];
+    list.push({ action: log.action, createdAt: log.createdAt });
+    logsMap.set(log.serviceRequestId, list);
+  }
+
+  return requests.map((r) => ({
+    ...r,
+    category: { name: r.categoryName },
+    assignedStaff: r.assignedStaffName ? { name: r.assignedStaffName } : null,
+    auditLogs: logsMap.get(r.id) || [],
+  }));
 }
 
-type Row = Awaited<ReturnType<typeof findRequests>>[number];
+type Row = Awaited<ReturnType<typeof fetchRequestsWithRelations>>[number];
+
+export function buildHistory(logs: { action: string; createdAt: Date }[]): { status: Status; at: string }[] {
+  let history: { status: Status; at: string }[] = [];
+  for (const a of logs) {
+    if (a.action === "unassigned") history = history.filter((h) => h.status === "submitted");
+    else if (STATUSES.includes(a.action as Status)) history.push({ status: a.action as Status, at: a.createdAt.toISOString() });
+  }
+  return history;
+}
 
 export function toDetail(r: Row): RequestDetail {
   return {
@@ -60,31 +105,52 @@ export function toDetail(r: Row): RequestDetail {
     title: r.title,
     description: r.description,
     location: r.location,
-    category: r.category.name as Category,
+    category: (r.category?.name ?? "Other") as Category,
     status: r.status,
     assignedTo: r.assignedStaff?.name ?? null,
     resolutionNotes: r.resolutionNotes,
     version: r.version,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
-    history: r.auditLogs
-      .filter((a) => STATUSES.includes(a.action as Status))
-      .map((a) => ({ status: a.action as Status, at: a.createdAt.toISOString() })),
+    history: buildHistory(r.auditLogs),
   };
 }
 
 export async function listMyRequests(requesterId: number): Promise<RequestDetail[]> {
-  return (await findRequests(eq(serviceRequests.requesterId, requesterId))).map(toDetail);
+  const rows = await fetchRequestsWithRelations(eq(serviceRequests.requesterId, requesterId));
+  return rows.map(toDetail);
 }
 
 export async function getMyRequest(requesterId: number, trackingId: string): Promise<RequestDetail | undefined> {
-  const [row] = await findRequests(
+  const rows = await fetchRequestsWithRelations(
     and(eq(serviceRequests.requesterId, requesterId), eq(serviceRequests.trackingId, trackingId)),
   );
-  return row && toDetail(row);
+  return rows[0] ? toDetail(rows[0]) : undefined;
 }
 
 export async function getPublicRequest(trackingId: string): Promise<PublicRequest | undefined> {
-  const [row] = await findRequests(eq(serviceRequests.trackingId, trackingId));
-  return row && toPublic(toDetail(row));
+  const rows = await fetchRequestsWithRelations(eq(serviceRequests.trackingId, trackingId));
+  return rows[0] ? toPublic(toDetail(rows[0])) : undefined;
+}
+
+export async function listAllRequests(): Promise<RequestDetail[]> {
+  const rows = await fetchRequestsWithRelations(undefined);
+  return rows.map(toDetail);
+}
+
+export async function listUnassignedRequests(): Promise<RequestDetail[]> {
+  const rows = await fetchRequestsWithRelations(
+    and(isNull(serviceRequests.assignedStaffId), eq(serviceRequests.status, "submitted")),
+  );
+  return rows.map(toDetail);
+}
+
+export async function listRequestsAssignedTo(staffId: number): Promise<RequestDetail[]> {
+  const rows = await fetchRequestsWithRelations(eq(serviceRequests.assignedStaffId, staffId));
+  return rows.map(toDetail);
+}
+
+export async function getRequestByTrackingId(trackingId: string): Promise<RequestDetail | undefined> {
+  const rows = await fetchRequestsWithRelations(eq(serviceRequests.trackingId, trackingId));
+  return rows[0] ? toDetail(rows[0]) : undefined;
 }

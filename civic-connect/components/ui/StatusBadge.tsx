@@ -10,7 +10,6 @@ const tone: Record<Status, string> = {
   closed: "bg-closed-bg text-closed-fg",
 };
 
-// Each status has its own icon and text, so colour is never the only signal.
 const icon: Record<Status, ReactNode> = {
   submitted: <path d="M2.5 9.5h3l1 2h3l1-2h3M3.5 9.5l1.5-6h6l1.5 6v3h-9z" />,
   assigned: <path d="M8 8a2.6 2.6 0 1 0 0-5.2A2.6 2.6 0 0 0 8 8zM3 13.5c.5-2.6 2.5-4 5-4s4.5 1.4 5 4" />,

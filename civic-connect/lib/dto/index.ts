@@ -1,5 +1,3 @@
-// Shared UI/API contract types. Status and role values mirror the enums in lib/db/schema.ts.
-
 export const STATUSES = ["submitted", "assigned", "in_progress", "resolved", "closed"] as const;
 export type Status = (typeof STATUSES)[number];
 
@@ -22,7 +20,6 @@ export const STATUS_HELP: Record<Status, string> = {
   closed: "The request is complete. It cannot be reopened.",
 };
 
-// FR-006: only the next step in the lifecycle is allowed. Closed is final (no reopen).
 export const NEXT_STATUS: Record<Status, Status | null> = {
   submitted: "assigned",
   assigned: "in_progress",
@@ -38,7 +35,6 @@ export const ROLE_LABEL: Record<Role, string> = {
   admin: "Administrator",
 };
 
-// Where each role lands after signing in.
 export const ROLE_HOME: Record<Role, string> = {
   requester: "/requests",
   staff: "/queue",
@@ -46,7 +42,6 @@ export const ROLE_HOME: Record<Role, string> = {
   admin: "/dashboard",
 };
 
-// FR-002: controlled list of categories.
 export const CATEGORIES = [
   "Water and sanitation",
   "Roads and potholes",
@@ -59,7 +54,6 @@ export type Category = (typeof CATEGORIES)[number];
 
 export const TRACKING_ID_PATTERN = /^CC-[A-Z0-9]{6}$/;
 
-// What anyone with a tracking ID may see (CR-008). No title, description, location or names (POPIA).
 export interface PublicRequest {
   trackingId: string;
   category: Category;
@@ -69,7 +63,6 @@ export interface PublicRequest {
   history: { status: Status; at: string }[];
 }
 
-// Signed-in views add the fields below.
 export interface RequestDetail extends PublicRequest {
   title: string;
   description: string;

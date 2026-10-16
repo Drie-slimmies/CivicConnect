@@ -1,6 +1,6 @@
 # Change Control
 
-> Controlled changes applied to the baselined M1 requirements during M2 (CR-001 to CR-005) and to the M2 baseline during M3 (CR-006 to CR-010), per PED v2.0's continuity rule: nothing is silently overwritten, every change is logged here.
+> Controlled changes applied to the baselined M1 requirements during M2 (CR-001 to CR-005) and to the M2 baseline during M3 (CR-006 to CR-014), per PED v2.0's continuity rule: nothing is silently overwritten, every change is logged here.
 
 
 <table>
@@ -117,6 +117,38 @@ secure</td>
 <td>Plain layered monolith: one deployable, one database, code organised by layer and feature area. No domain modules, event bus or handler; category-to-department routing is a direct call in the request service within the same transaction</td>
 <td>Team decision for a 3-person team with four fixed milestones: the event pattern and module boundaries were not built and would not be finished by M3/M4; the modular and plain options were compared in ADR-05 and give the same atomicity (FR-006/FR-008) and performance (NFR-001), so the simpler design wins on build cost; the price is that feature boundaries are no longer enforced (review and the layer structure are the controls)</td>
 <td>ADR-03 superseded; ADR-05, Figure 1, the architecture section, traceability, NFR table and ED-04/ED-05 amended. No change to requirements or acceptance criteria. Repo cleanup: the empty event stubs (lib/events/eventEmitter.ts and lib/events/handlers/assignStaff.ts) are removed; the empty State and Decorator stubs stay, because ADR-01 and ADR-02 still apply and are built in the Staff slice</td>
+</tr>
+<tr class="odd">
+<td>CR-011</td>
+<td>Split the staff queue into Unassigned, My requests and All requests (M3)</td>
+<td>FR-004: one queue showing all requests, with search, status and category filters and a date sort</td>
+<td>Three views. Unassigned: open requests nobody holds (status Submitted). My requests: every request assigned to the signed-in staff member (staff only). All requests: every request, for staff, managers and admins. Search, category filter and date sort stay on each view; the status filter is on My requests and All requests</td>
+<td>Staff want the work they can take separated from the work they already hold; managers cannot hold requests (CR-012) but still need to see all work in flight, and FR-004 requires that any request can be opened</td>
+<td>FR-004 text, acceptance criterion and RTM row updated; three queue routes and the queries listUnassignedRequests, listRequestsAssignedTo and listAllRequests; no change to the data model</td>
+</tr>
+<tr class="even">
+<td>CR-012</td>
+<td>Managers and admins cannot be assignees; added Unassign (M3)</td>
+<td>FR-005: assign a ticket to themselves or other authorised staff members; the Security constraint said a manager can do everything staff can; there was no way to take a request back</td>
+<td>Only accounts with the staff role can be assigned a request. Managers and admins can assign and transfer requests to staff but never to themselves. A new Unassign action returns an Assigned or In progress request to Submitted with nobody assigned: managers and admins can unassign any request, staff only their own. It is audited as "unassigned" and the progress timeline steps back to Submitted</td>
+<td>Managers oversee how work flows and should not hold requests; staff need to hand back work they cannot do, and managers need to free a request when someone is unavailable</td>
+<td>FR-005 text and acceptance criterion, the Manager bullet in the Security constraint and the RTM row updated; new endpoint POST /api/requests/[trackingId]/unassign; new audit action "unassigned"; Resolved and Closed requests cannot be unassigned; the PED Word wording of FR-005 and the Security constraint must be aligned</td>
+</tr>
+<tr class="odd">
+<td>CR-013</td>
+<td>Department comes from the category; removed assigned_department_id (M3)</td>
+<td>CR-006 and CR-010: the request service sets the department on the request in the creation transaction, and the department is stored on the request and shown as a label</td>
+<td>Each category belongs to exactly one department (categories.department_id), so a request's department is read through its category. The column service_requests.assigned_department_id is dropped (migration 0003) and no routing step is built</td>
+<td>The department can always be derived from the category, so storing it again duplicated the data and added a write to the creation transaction that could disagree with the category</td>
+<td>ADR-03 amended again (nothing to build); the department wording in CR-006 and CR-010 no longer applies; FR-002 row, architecture section, data and persistence baseline and ER diagram updated; no change to acceptance criteria</td>
+</tr>
+<tr class="even">
+<td>CR-014</td>
+<td>Audit logging built as a transaction-passing function, not a wrapper class (M3)</td>
+<td>ADR-02: an AuditServiceDecorator class wraps the service and writes the audit log before and after the core logic</td>
+<td>logAuditAction(tx, ...) in lib/decorators/auditDecorator.ts is called by the request service inside its own transaction, so the status change and its audit row commit or roll back together</td>
+<td>A wrapper that runs around the service cannot share the service's transaction, which FR-006, FR-008 and ADR-04 require; passing the transaction in keeps audit writing in one file and out of the business rules in lib/states</td>
+<td>ADR-02 gets an implementation note; the FR-008 row and the architecture text updated; every service action must call it, which the service tests check by asserting the audit row</td>
 </tr>
 </tbody>
 </table>

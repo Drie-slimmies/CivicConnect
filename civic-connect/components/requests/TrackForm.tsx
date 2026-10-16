@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/Button";
 
-// Plain GET form: works without JavaScript and the result page has a shareable URL.
 export function TrackForm({ defaultValue = "", error }: { defaultValue?: string; error?: string }) {
   return (
     <form action="/track" method="get" className="flex flex-col gap-3" role="search" aria-label="Track a request">

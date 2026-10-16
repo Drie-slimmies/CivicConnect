@@ -13,6 +13,14 @@ describe("audit log wording", () => {
     expect(describeAction("assigned")).toBe("Assigned");
   });
 
+  it("describes a transfer", () => {
+    expect(describeAction("transferred")).toBe("Transferred");
+  });
+
+  it("describes an unassignment", () => {
+    expect(describeAction("unassigned")).toBe("Unassigned");
+  });
+
   it("describes status changes with their readable label", () => {
     expect(describeAction("in_progress")).toBe("Status changed to In progress");
     expect(describeAction("closed")).toBe("Status changed to Closed");

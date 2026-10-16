@@ -5,7 +5,7 @@ import type { RequestDetail } from "@/lib/dto";
 import { CATEGORIES, STATUSES, STATUS_LABEL } from "@/lib/dto";
 import { formatDate } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { SelectField } from "@/components/ui/Fields";
+import { SelectField, TextField } from "@/components/ui/Fields";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 
 const SORTS = {
@@ -14,32 +14,55 @@ const SORTS = {
 } as const;
 type Sort = keyof typeof SORTS;
 
-export function QueueView({ requests }: { requests: RequestDetail[] }) {
-  const [status, setStatus] = useState("open");
+export function QueueView({
+  requests,
+  defaultStatus = "open",
+  showStatus = true,
+  emptyHint,
+}: {
+  requests: RequestDetail[];
+  defaultStatus?: string;
+  showStatus?: boolean;
+  emptyHint?: string;
+}) {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState(defaultStatus);
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<Sort>("oldest");
 
   const shown = useMemo(() => {
+    const term = search.trim().toLowerCase();
     const list = requests.filter(
       (r) =>
+        (term === "" || [r.trackingId, r.title, r.location].some((field) => field.toLowerCase().includes(term))) &&
         (status === "all" || (status === "open" ? r.status !== "resolved" && r.status !== "closed" : r.status === status)) &&
         (category === "all" || r.category === category),
     );
-    return list.sort((a, b) => (sort === "newest" ? b.createdAt.localeCompare(a.createdAt) : a.createdAt.localeCompare(b.createdAt)));
-  }, [requests, status, category, sort]);
+    const byDate = (a: RequestDetail, b: RequestDetail) => a.createdAt.localeCompare(b.createdAt);
+    return list.sort(sort === "oldest" ? byDate : (a, b) => byDate(b, a));
+  }, [requests, status, category, sort, search]);
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 rounded-card border border-line bg-surface p-5 sm:grid-cols-3">
-        <SelectField label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="open">Open requests</option>
-          <option value="all">All requests</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </SelectField>
+      <div className="grid gap-4 rounded-card border border-line bg-surface p-5 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]">
+        <TextField
+          label="Search"
+          type="search"
+          placeholder="Tracking ID, title or location"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {showStatus && (
+          <SelectField label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="open">Open requests</option>
+            <option value="all">All requests</option>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </option>
+            ))}
+          </SelectField>
+        )}
         <SelectField label="Category" value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="all">All categories</option>
           {CATEGORIES.map((c) => (
@@ -60,7 +83,7 @@ export function QueueView({ requests }: { requests: RequestDetail[] }) {
       </p>
 
       {shown.length === 0 ? (
-        <EmptyState title="No requests match these filters">Try a different status or category to see more of the queue.</EmptyState>
+        <EmptyState title="No requests to show">{emptyHint ?? "Try a different status or category to see more of the queue."}</EmptyState>
       ) : (
         <ul className="flex flex-col gap-3">
           {shown.map((r) => (

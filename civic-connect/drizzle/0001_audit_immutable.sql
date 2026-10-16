@@ -1,4 +1,3 @@
--- FR-008 / NFR-004: audit_logs is append-only. The database itself rejects UPDATE, DELETE and TRUNCATE.
 CREATE OR REPLACE FUNCTION audit_logs_block_change() RETURNS trigger AS $$
 BEGIN
   RAISE EXCEPTION 'audit_logs is append-only';

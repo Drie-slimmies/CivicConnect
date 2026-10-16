@@ -6,7 +6,6 @@ import { ROLE_LABEL } from "@/lib/dto";
 import { useRole } from "@/components/auth/SessionProvider";
 import { buttonClass } from "@/components/ui/Button";
 
-// UI gate only. The API enforces access with requireRole().
 export function RoleGate({ allow, children }: { allow: Role[]; children: ReactNode }) {
   const role = useRole();
   if (role && allow.includes(role)) return <>{children}</>;

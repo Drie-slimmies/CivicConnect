@@ -6,6 +6,8 @@ import { STATUSES, STATUS_LABEL, type AuditEntry, type Status } from "@/lib/dto"
 export function describeAction(action: string): string {
   if (action === "submitted") return "Request submitted";
   if (action === "assigned") return "Assigned";
+  if (action === "transferred") return "Transferred";
+  if (action === "unassigned") return "Unassigned";
   return STATUSES.includes(action as Status) ? `Status changed to ${STATUS_LABEL[action as Status]}` : action;
 }
 

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-// The tracking ID as a ticket stub: the one memorable element in the design.
 export function TicketStub({ id, children }: { id: string; children?: ReactNode }) {
   return (
     <div className="relative flex flex-col overflow-hidden rounded-card border border-stub-line bg-stub shadow-soft sm:flex-row">
