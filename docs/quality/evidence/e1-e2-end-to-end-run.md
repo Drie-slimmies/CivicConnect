@@ -7,7 +7,7 @@ Part of the [Quality Strategy](../quality-strategy.md) (cases E1 and E2, release
 | Date | 16 October 2026; passing run about 16:06 (South Africa), JUnit timestamp 14:06 UTC |
 | Run by | Ruan Jordaan, on his own machine (Windows, PowerShell) |
 | Code under test | `civic-connect/e2e/e1-acceptance.e2e.ts` and `e2-role-rules.e2e.ts`, base commit `4ef2c92` with the Q1 to Q5 and E2E changes not yet committed (replace with the commit SHA when merged) |
-| Environment | Production build of the app (`npm run build`, `npm run start`) started by Playwright 1.64.1 on localhost:3000, Chromium, against a Neon branch created for testing (seeded; the second staff account is created by E2). Not the CI run and not a deployed staging site |
+| Environment | Production build of the app (`npm run build`, `npm run start`) started by Playwright 1.64.1 on localhost:3000, Chromium, against a Neon branch created for testing (seeded; the second staff account is created by E2). Not the CI run and not a deployed site |
 | Command | `npm run test:e2e` with `DATABASE_URL` set to the branch and `E2E_CONFIRM_TEST_DATABASE=yes` |
 | Saved results | `civic-connect/e2e-results/junit.xml` and `e2e-results/report` (not committed; copy the JUnit file into the release evidence if it is needed) |
 
@@ -38,7 +38,7 @@ Part of the [Quality Strategy](../quality-strategy.md) (cases E1 and E2, release
 **What it shows:** the role and lifecycle rules that the mocked tests prove in code also hold through the real screens, a real session, the real SQL and the real audit trigger on Neon. The public page leaks nothing at any stage of the journey, and the audit log has the complete set of entries for it.
 
 **What it does not show:**
-- It ran once, in one browser (Chromium), against a Neon test branch and a local production build, not against a deployed staging site. It should be repeated on the release candidate.
+- It ran once, in one browser (Chromium), against a Neon test branch and a local production build, not against a deployed site. It should be repeated on the release candidate.
 - It does not cover two people editing at the same time (Q5), failed sign-ins, other request categories, the search, filter and sort on the queue screens (TD-10), or screen readers.
 - Passing proves these journeys work; it does not prove the application has no other defects.
 - The test requests and the E2E staff account remain on the branch; they are not cleaned up, so delete the branch after the evidence has been collected.

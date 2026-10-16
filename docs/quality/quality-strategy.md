@@ -1,6 +1,6 @@
 # Quality Strategy and Quality Gate
 
-**Status:** draft for team review, 16 October 2026 (Milestone 3). The gate test cases for Q1 to Q5 are built and verified; the gate additions in `ci.yml` and the release-quality evidence are not. Every item below says whether it exists or is planned.
+**Status:** final for the M3 release candidate, 16 October 2026 (Milestone 3). The gate test cases for Q1 to Q5, the gate additions in `ci.yml` and the release-quality evidence (A4, E1, E2, P1) all exist and have been run; each item below says what its result was. Results and their interpretation are in the evidence notes and the [Release Evidence Summary](release-evidence-summary.md).
 
 This document does three things: it records which quality risks the team chose to verify and why (M3 work plan step 4, "risk-based, not test-count based"), it defines the single CI quality gate and the thresholds it uses, and it says how the evidence is stored and read. It extends the [ASRs and Quality Drivers](quality-drivers.md) and is indexed from the [PED](../PED/PED.md).
 
@@ -107,7 +107,7 @@ The authentication tests, the dashboard test and the creation tests also run in 
 | Negative/failure/unauthorised | 3 | 7 or more (U2, U4, A1, A2, A3, B3, B4) | 8 with A4 |
 | High-priority risk coverage | 5 | 5 (Q1 to Q5 each have gate cases) | 5, plus E1, E2 and A4 |
 | Black-box techniques | 2 | 3 (decision table B1, B2; state transition B3; equivalence classes B4, B5) | 3 |
-| Performance | 1 | 0 | 1 (P1) |
+| Performance | 1 | 1 (P1, run once, missed its target) | 1 |
 
 ## 3. The CI quality gate
 
@@ -135,7 +135,7 @@ Gate policies:
 - **Do not change a test to agree with the code.** A failed check is traced to its requirement or risk, then the code, test, test data, environment or assumption that is wrong is corrected, and the relevant and broader checks are rerun.
 - **A skipped test is a failure.** Otherwise a risk case could be switched off and the gate would stay green.
 - **Dev-tooling vulnerabilities** are not gated (R-12); plain `npm audit` is rerun at each milestone and the findings are recorded.
-- **Pull request control** (from [CONTRIBUTING.md](../../CONTRIBUTING.md)): two approvals from non-authors, no direct pushes to `main`. Making `checks` a required status check in the ruleset is a repository setting to be confirmed.
+- **Pull request control** (from [CONTRIBUTING.md](../../CONTRIBUTING.md)): two approvals from non-authors, no direct pushes to `main`. `checks` is a required status check in the `main` ruleset (set on 16 October 2026).
 
 **What a green gate does not prove:** usability and accessibility (NFR-003); performance beyond the single P1 scenario (NFR-001); behaviour against the real database, because the gate tests mock it (TD-05); the screens, which have no automated test (TD-10); and anything outside Q1 to Q5.
 
@@ -157,12 +157,12 @@ The course separates the CI gate (fast feedback per change) from a broader relea
 
 ## 6. Delivery order
 
-1. PR 1: the gate additions in `ci.yml` (checks 6 to 8; check 9 left out) and the repository setting for the required check. This strategy is already pushed.
-2. One pull request per risk, in the order Q1 to Q5. Each tags that risk's existing tests, adds its planned cases, saves an evidence file under `docs/quality/evidence/` and updates the RTM. Q1 to Q5 are built and verified in the verification copy: evidence files [Q1](evidence/q1-role-and-ownership.md), [Q2](evidence/q2-public-tracking-privacy.md), [Q3](evidence/q3-lifecycle-and-resolution-notes.md), [Q4](evidence/q4-audit-trail.md) and [Q5](evidence/q5-concurrent-edits.md); they go in as one change. A4 has been run (passed); still to do for the risks: E1 and E2.
-3. Release-quality evidence: A4 and E1/E2 (done once on a Neon branch, repeat on the release candidate), then P1.
-4. Release Evidence Summary, RTM results, risk register and PED v3.0 final.
+1. PR 1: the gate additions in `ci.yml` (checks 6 to 8; check 9 left out) and the repository setting for the required check. Done and confirmed by a green run (see [ci-gate-run.md](evidence/ci-gate-run.md)).
+2. One pull request per risk, in the order Q1 to Q5. Each tags that risk's existing tests, adds its planned cases, saves an evidence file under `docs/quality/evidence/` and updates the RTM. Q1 to Q5 are built and verified: evidence files [Q1](evidence/q1-role-and-ownership.md), [Q2](evidence/q2-public-tracking-privacy.md), [Q3](evidence/q3-lifecycle-and-resolution-notes.md), [Q4](evidence/q4-audit-trail.md) and [Q5](evidence/q5-concurrent-edits.md); A4, E1 and E2 have been run and passed.
+3. Release-quality evidence: A4 and E1/E2 (done once on a Neon branch, repeat on the release candidate), then P1 (run once, failed its target; see DF-08).
+4. Release Evidence Summary, RTM results, risk register and PED v3.0 final (done; see the [Release Evidence Summary](release-evidence-summary.md)).
 
 ## 7. Open decisions
 
-- Whether `checks` is already a required status check in the ruleset (a repository setting, not part of the workflow file).
+- Decided: `checks` is a required status check in the `main` ruleset.
 - Decided: the secrets scan uses the gitleaks binary directly, so it needs no licence on a personal or an organisation repository; coverage (check 9) is left out; P1 measures `/queue/all`.
