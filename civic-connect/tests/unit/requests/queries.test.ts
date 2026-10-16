@@ -6,11 +6,11 @@ vi.mock("@/lib/db", () => ({ db: {} }));
 import { newTrackingId, toDetail } from "@/lib/db/queries/requests";
 
 describe("request queries", () => {
-  it("makes tracking IDs that the tracking page accepts", () => {
+  it("[Q2] makes tracking IDs that the tracking page accepts", () => {
     for (let i = 0; i < 50; i++) expect(newTrackingId()).toMatch(TRACKING_ID_PATTERN);
   });
 
-  it("builds the status history from audit rows and skips other actions", () => {
+  it("[Q4] builds the status history from audit rows and skips other actions", () => {
     const row = {
       id: 1,
       trackingId: "CC-7H3K9P",

@@ -56,14 +56,23 @@ Only variable names and placeholders belong in `.env.example`. Real values stay 
 | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `npm run dev`                             | Start the development server at http://localhost:3000                                          |
 | `npm run lint`                            | ESLint                                                                                         |
-| `npm test`                                | Vitest unit and API tests in `tests/` (90 tests). They need no database and no `.env`.         |
+| `npm test`                                | Vitest unit, black-box and API tests in `tests/` (184 tests). They need no database and no `.env`.         |
 | `npm run db:migrate`                      | Apply the committed migrations to the database in `DATABASE_URL`                               |
 | `npm run db:seed`                         | Insert reference data and the three demo accounts                                              |
+| `npm run test:e2e`                        | Browser end-to-end tests E1 and E2 (Playwright). Need a test database: see below. Not part of CI. |
+| `npm run perf:queue`                      | Performance check P1: 200 test requests, 20 users, 30 seconds on `/queue/all`. Needs a test database and the app running. Not part of CI. |
+| `npm run verify:audit`                    | Check that the database refuses to change `audit_logs` (runs in a transaction that is rolled back; use a test database) |
 | `npx tsc --noEmit`                        | Type check (run after `npm run build`, because Next.js generates route types during the build) |
 | `npm run build`                           | Production build                                                                               |
 | `npm audit --omit=dev --audit-level=high` | Dependency check used as the CI gate                                                           |
 
-The same checks run in GitHub Actions on every pull request and push to `main` (see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)).
+**Running the end-to-end tests (E1, E2):** they create requests and one test staff account in the database, so use a Neon test branch, never the main database.
+1. Seed the branch (`npm run db:seed` with `DATABASE_URL` set to the branch) and add `E2E_STAFF_B_PASSWORD` to `.env` (see `.env.example`).
+2. Once: `npx playwright install chromium`.
+3. Set `DATABASE_URL` to the branch and `E2E_CONFIRM_TEST_DATABASE=yes` in the shell, then `npm run test:e2e`. The app builds and starts itself (production mode) on port 3000 (it refuses to start if something already uses the port, so a copy of the app on the main database is never reused).
+4. Results: `e2e-results/junit.xml` and the HTML report in `e2e-results/report`.
+
+The same checks run in GitHub Actions on every pull request and push to `main` (see [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)). Their pass/fail rules are the quality gate defined in the [quality strategy](../docs/quality/quality-strategy.md).
 
 ## Structure
 
@@ -72,7 +81,7 @@ The same checks run in GitHub Actions on every pull request and push to `main` (
 | `app/`            | Next.js routes and pages. Implemented endpoints: `app/api/health`, `app/api/auth/register`, `login` and `logout`, `POST app/api/requests` and, under `app/api/requests/[trackingId]/`, `POST assign`, `unassign` and `status`. Requester screens: `app/(requester)/requests`, `app/track`. Staff screens: `app/(staff)/queue` (Unassigned), `queue/mine`, `queue/all` and `queue/[trackingId]`. Manager screens: `app/(manager)/dashboard` and `audit`. |
 | `lib/auth/`       | Passwords (`password.ts`), signed sessions (`session.ts`), current user and role checks (`guard.ts`), browser helper (`client.ts`) |
 | `components/auth/` | Sign-in and sign-up forms, the session provider and the success popup |
-| `scripts/`        | `seed.mjs`: reference data and demo accounts |
+| `scripts/`        | `seed.mjs`: reference data and demo accounts; `verify-audit-immutable.mjs`: audit immutability check |
 | `drizzle/`        | Committed SQL migrations (`0001` makes `audit_logs` append-only, `0002` adds lookup indexes, `0003` drops `assigned_department_id`) |
 | `lib/db/`         | Drizzle schema (`schema.ts`), database client (`index.ts`) and queries (`queries/requests.ts`, `audit.ts`, `dashboard.ts`, `staff.ts`) |
 | `lib/requests/`   | Request rules (`rules.ts`), staff actions (`service.ts`: assign, unassign, change status), the shared route handler (`actionRoute.ts`) and the staff role list (`staffRoles.ts`) |
@@ -80,7 +89,7 @@ The same checks run in GitHub Actions on every pull request and push to `main` (
 | `components/staff/` | Staff queue views, queue tabs and the request workspace |
 | `lib/states/`     | State pattern for the request lifecycle (ADR-01): one file per status and `stateFor` |
 | `lib/decorators/` | Audit logging (ADR-02, CR-014): `logAuditAction`, called inside each transaction     |
-| `tests/`          | Automated tests: `tests/unit/auth` and `tests/unit/requests` (unit), `tests/api/auth` and `tests/api/requests` (API handlers with the database mocked) |
+| `tests/`          | Automated tests: `tests/unit/auth` and `tests/unit/requests` (unit), `tests/api/auth` and `tests/api/requests` (API handlers with the database mocked), `tests/blackbox/requests` (decision tables over the staff actions, database mocked) |
 
 ## Authentication
 
@@ -97,4 +106,9 @@ Sign-up always creates a requester; staff and manager accounts come from the see
 
 ## Documentation links
 
-[PED](../docs/PED/PED.md) | [RTM](../docs/requirements/rtm.md) | [Risk Register](../docs/risk/risk-register.md) | [Decisions (ADRs)](../docs/decisions/) | [Data and persistence baseline](../docs/architecture/data-persistence-baseline.md) | [Architecture](../docs/architecture/architecture.md) | [ADR-06 sessions](../docs/decisions/0009-signed-cookie-sessions-with-jose.md) | [Technical debt register](../docs/quality/technical-debt-register.md)
+[PED](../docs/PED/PED.md) | [RTM](../docs/requirements/rtm.md) | [Risk Register](../docs/risk/risk-register.md) | [Decisions (ADRs)](../docs/decisions/) | [Data and persistence baseline](../docs/architecture/data-persistence-baseline.md) | [Architecture](../docs/architecture/architecture.md) | [ADR-06 sessions](../docs/decisions/0009-signed-cookie-sessions-with-jose.md) | [Technical debt register](../docs/quality/technical-debt-register.md) | [Quality strategy](../docs/quality/quality-strategy.md)
+
+**Running the performance check (P1):** it adds 200 test requests to the database, so use a Neon test branch.
+1. In one terminal, with `DATABASE_URL` set to the branch: `npm run build`, then `npm run start`.
+2. In a second terminal, with the same `DATABASE_URL`: `$env:PERF_CONFIRM_TEST_DATABASE="yes"; npm run perf:queue` (PowerShell).
+3. The result prints as a table and is saved in `perf-results/` as JSON; the verdict is PASS or FAIL against the 2 second 95th percentile.

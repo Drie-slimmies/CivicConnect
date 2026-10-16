@@ -12,7 +12,7 @@ const user = (role: CurrentUser["role"]): CurrentUser => ({
 });
 
 describe("authorize", () => {
-  it("returns 401 when nobody is signed in", async () => {
+  it("[Q1] returns 401 when nobody is signed in", async () => {
     const result = authorize(null, ["staff"]);
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -23,7 +23,7 @@ describe("authorize", () => {
     }
   });
 
-  it("returns 403 when the role is not allowed", async () => {
+  it("[Q1] returns 403 when the role is not allowed", async () => {
     const result = authorize(user("requester"), ["staff", "manager"]);
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -34,7 +34,7 @@ describe("authorize", () => {
     }
   });
 
-  it("returns the user when the role is allowed", () => {
+  it("[Q1] returns the user when the role is allowed", () => {
     const result = authorize(user("manager"), ["staff", "manager"]);
     expect(result).toEqual({ ok: true, user: user("manager") });
   });

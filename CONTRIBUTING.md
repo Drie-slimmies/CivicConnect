@@ -30,8 +30,7 @@ the Master Project Brief:
   issues, with automated workflows moving an item to In Review when a PR
   is linked and to Done when the PR merges.
 
-- A CI workflow (lint, build, typecheck, production-dependency audit) runs on every
-  pull request and push to main. A mature CI/CD pipeline is not required
+- A CI workflow (skipped-test guard, secrets scan, lint, tests, build, typecheck, production-dependency audit, and the saved evidence artifact) runs on every pull request and push to main; its pass/fail rules are the quality gate defined in the [Quality Strategy](docs/quality/quality-strategy.md). A mature CI/CD pipeline is not required
   at M2, but this gives repeatable automated checks as evidence.
 
 - If new commits are added to an open pull request, old approvals are

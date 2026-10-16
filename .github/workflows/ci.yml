@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -14,6 +21,28 @@ jobs:
         working-directory: civic-connect
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create evidence folder
+        run: mkdir -p ci-evidence
+
+      - name: Skipped-test guard
+        run: |
+          if grep -rnE '\.(skip|skipIf|todo|only)\(|\b(xit|xdescribe|xtest)\(' tests e2e; then
+            echo "A skipped, todo or only test was found. A skipped test counts as a failure."
+            exit 1
+          fi
+          echo "No skipped tests found."
+
+      - name: Secrets scan (gitleaks, full history)
+        shell: bash
+        working-directory: .
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz -o gitleaks.tar.gz
+          echo "ba6dbb656933921c775ee5a2d1c13a91046e7952e9d919f9bac4cec61d628e7d  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks detect --source . --redact --no-banner --exit-code 1 2>&1 | tee civic-connect/ci-evidence/gitleaks.txt
 
       - uses: actions/setup-node@v4
         with:
@@ -27,7 +56,7 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test
+        run: npm test -- --reporter=default --reporter=junit --outputFile.junit=ci-evidence/junit.xml
 
       - name: Build
         run: npm run build
@@ -38,4 +67,14 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Audit (production dependencies, high+ only)
-        run: npm audit --omit=dev --audit-level=high
+        shell: bash
+        run: npm audit --omit=dev --audit-level=high 2>&1 | tee ci-evidence/audit.txt
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-evidence
+          path: civic-connect/ci-evidence
+          retention-days: 90
+          if-no-files-found: warn

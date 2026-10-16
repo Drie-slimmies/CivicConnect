@@ -17,3 +17,4 @@ requirements: both forced the atomic, multi-step database transaction
 described above, which is why the Neon WebSocket Pool driver was
 required over the simpler HTTP driver (ADR-04).
 
+How these drivers and the functional risks are verified, and what makes a CI run pass or fail, is defined in the [Quality Strategy and Quality Gate](quality-strategy.md). NFR-001 is covered by one planned performance scenario (P1); NFR-002 and NFR-003 have no automated check yet.
