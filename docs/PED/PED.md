@@ -38,7 +38,7 @@
 | Team | Group M (GitHub organisation Drie-slimmies) |
 | Team members | Ruan Jordaan (601715), Mark Minnaar (602267), Armand Erasmus (601631) |
 | GitHub repository | https://github.com/Drie-slimmies/CivicConnect |
-| M3 release candidate | Git tag `m3-rc1` on `main`, commit RC_COMMIT_SHA |
+| M3 release candidate | Git tag `m3-rc1` on `main`, commit `15c062c` |
 | PED version | v3.0 (this document, continued from PED v2.0) |
 | RTM | [docs/requirements/rtm.md](../requirements/rtm.md) |
 | CI and test evidence | [CI run record](../quality/evidence/ci-gate-run.md) (GitHub Actions run #33, artifact `ci-evidence`), [quality evidence folder](../quality/evidence/), [Release Evidence Summary](../quality/release-evidence-summary.md) |

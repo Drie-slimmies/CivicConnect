@@ -1,7 +1,6 @@
 # Change Control
 
-> Controlled changes applied to the baselined M1 requirements during M2 (CR-001 to CR-005) and to the M2 baseline during M3 (CR-006 to CR-015), per PED v2.0's continuity rule: nothing is silently overwritten, every change is logged here.
-
+> Controlled changes applied to the baselined M1 requirements during M2 (CR-001 to CR-005), to the M2 baseline during M3 (CR-006 to CR-015), and closing decisions recorded at M4 (CR-016), per PED v2.0's continuity rule: nothing is silently overwritten, every change is logged here.
 
 <table>
 <colgroup>
@@ -158,6 +157,13 @@ secure</td>
 <td>M3 asks for risk-based verification and at least one CI check that blocks progression with thresholds defined in advance; a gate whose threshold is decided after seeing the result is not a gate</td>
 <td>PED contents and progress section, RTM (quality risk coverage section and the FR-008 test method), risk register (R-14 and a status note), technical debt register (TD-15 and repayment notes), quality drivers and both READMEs updated. No change to requirements or acceptance criteria. The gate additions in ci.yml and the new tests are planned as separate pull requests</td>
 </tr>
+<tr class="even">
+<td>CR-016</td>
+<td>Frozen the M3 code for M4 submission; recorded DF-08, NFR-003 and NFR-004 as closing statuses rather than fixing or re-scoping them (M4, 18 October 2026)</td>
+<td>The brief allows further coding at M4; no decision had been made on whether to apply the tested fix for DF-08 or to run a further NFR-004 (POPIA) review before the final submission</td>
+<td>The application code stays identical to the `m3-rc1` commit. DF-08 (NFR-001 miss on the all-requests list) is recorded as an open, accepted limitation: a tested fix exists but is deliberately not applied. NFR-004 is recorded as Partially Met: access control and the public-page whitelist are verified, field encryption and the POPIA review are not done. NFR-003 is checked by hand at 360px and recorded as evidence, not as new development</td>
+<td>Reopening the verified build to chase a 3.4% performance miss, or to add encryption this late, would need A4, E1 and E2 re-run on a new commit and risks introducing an unverified regression days before submission; the brief rewards honest evidence over a late patch that cannot be fully re-verified in time</td>
+<td>RTM (NFR-003 row added), Defect Register (DF-08 wording), Technical Debt Register (Status column, TD-16), Risk Register (Status column, R-05/R-07/R-11/R-14), deployment.md (simulated production plus an evidence-based no-go for real personal data), PED v4.0 scope table and known limitations section</td>
+</tr>
 </tbody>
 </table>
-

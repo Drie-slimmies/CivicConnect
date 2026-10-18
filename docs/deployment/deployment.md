@@ -49,3 +49,33 @@ implemented prematurely.
   architecture, and committing to one now would be over-implementing
   ahead of the evidence the team will have by M3.
 
+## M4 deployment decision (18 October 2026)
+
+**Simulated production, with an evidence-based no-go for real citizen
+data.** The application code stays frozen at `m3-rc1`. For the final
+submission the team runs the production build (`next build && next
+start`) with its own configuration, against a separate Neon test
+branch and its own `SESSION_SECRET`, rather than development mode or
+a cloud deploy. This matches the setup already described above and
+reuses the hosting direction decided at M2; it is not a new
+architecture decision.
+
+This is a deliberate choice not to deploy to a public cloud host or
+to hold real personal data, for reasons already recorded in this
+repository rather than "ran out of time":
+
+| Blocker | Why it blocks real use | Must be fixed before go-live | Tracked as |
+|---|---|---|---|
+| No login rate limiting or lockout | A password can be guessed without being slowed down | Add a per-email and per-address attempt limit | TD-01 |
+| No revocation of a single session | A stolen signed cookie works for up to 8 hours | Move to database-backed sessions or a token version per user | TD-02 |
+| NFR-004 (POPIA) review not done | Access control and the public-page whitelist are tested; field-level encryption and a privacy review are not | Complete the NFR-004 review; add field encryption if the review requires it | R-05, R-11 |
+| NFR-001 miss on the all-requests list | p95 2067 ms against the 2000 ms target at 20 concurrent users | Apply the already-tested query fix (narrow the list to the six displayed fields) and re-run P1 | DF-08, TD-16, R-07 |
+
+**Residual risk for the simulated-production run itself:** R-07
+(cold start) and R-08 (free-tier compute cap) still apply to the Neon
+test branch used for the demo; the branch is warmed before the live
+presentation.
+
+This decision is recorded in [Change Control](../change/change-control.md)
+(CR-016) and carried into PED v4.0's release and deployment section.
+
